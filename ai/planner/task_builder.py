@@ -6,7 +6,6 @@ class TaskBuilder:
     def build(self, plan):
 
         tasks = []
-
         priority = 1
 
         for item in plan:
@@ -40,6 +39,22 @@ class TaskBuilder:
                     parameters={
                         "application": item["target"],
                         "action": "close"
+                    }
+                )
+
+            # ----------------------------
+            # AI Conversation
+            # ----------------------------
+
+            elif action == "answer":
+
+                task = Task(
+                    name="AI Chat",
+                    description=item.get("query", ""),
+                    tool="ai",
+                    priority=priority,
+                    parameters={
+                        "prompt": item.get("query", "")
                     }
                 )
 
@@ -117,7 +132,7 @@ class TaskBuilder:
                 )
 
             # ----------------------------
-            # Unknown
+            # Unknown Action
             # ----------------------------
 
             else:
@@ -131,7 +146,6 @@ class TaskBuilder:
                 )
 
             tasks.append(task)
-
             priority += 1
 
         return tasks

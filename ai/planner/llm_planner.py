@@ -11,14 +11,43 @@ class LLMPlanner:
     def create_prompt(self, user_input):
 
         return f"""
-You are an AI planner.
+You are ULTRON's planning engine.
 
 Convert the user's request into a JSON array.
 
-Examples:
+Return ONLY valid JSON.
 
-User:
-Open Chrome
+Rules:
+
+1. General conversation, greetings, explanations and questions
+   -> action = "answer"
+
+Example:
+User: What is your name?
+
+Output:
+[
+    {{
+        "action":"answer",
+        "query":"What is your name?"
+    }}
+]
+
+Example:
+User: Explain Python decorators
+
+Output:
+[
+    {{
+        "action":"answer",
+        "query":"Explain Python decorators"
+    }}
+]
+
+2. Open applications
+
+Example:
+User: Open Chrome
 
 Output:
 [
@@ -28,8 +57,10 @@ Output:
     }}
 ]
 
-User:
-Close Chrome
+3. Close applications
+
+Example:
+User: Close Chrome
 
 Output:
 [
@@ -39,21 +70,60 @@ Output:
     }}
 ]
 
-User:
-Search Python decorators
+4. Explicit web searches ONLY
+
+Example:
+User: Search Google for Python decorators
 
 Output:
 [
     {{
         "action":"search",
+        "target":"google",
         "query":"Python decorators"
     }}
 ]
 
+Example:
+User: Search YouTube for AI
+
+Output:
+[
+    {{
+        "action":"search",
+        "target":"youtube",
+        "query":"AI"
+    }}
+]
+
+Example:
+User: Search GitHub for LangChain
+
+Output:
+[
+    {{
+        "action":"search",
+        "target":"github",
+        "query":"LangChain"
+    }}
+]
+
+Example:
+User: Search Wikipedia for Linux
+
+Output:
+[
+    {{
+        "action":"search",
+        "target":"wikipedia",
+        "query":"Linux"
+    }}
+]
+
+Never use "search" for normal questions.
+
 User:
 {user_input}
-
-Return ONLY JSON.
 """
 
     def normalize_plan(self, plan):
@@ -69,19 +139,15 @@ Return ONLY JSON.
                 target = item.get("target", "").lower()
 
                 if target == "youtube":
-
                     item["action"] = "youtube_search"
 
                 elif target == "github":
-
                     item["action"] = "github_search"
 
                 elif target == "wikipedia":
-
                     item["action"] = "wikipedia_search"
 
                 else:
-
                     item["action"] = "google_search"
 
             normalized.append(item)
@@ -102,6 +168,14 @@ Return ONLY JSON.
         response = response.replace("```", "")
         response = response.strip()
 
-        plan = json.loads(response)
+        try:
+            plan = json.loads(response)
+        except json.JSONDecodeError:
+            return [
+                {
+                    "action": "answer",
+                    "query": user_input
+                }
+            ]
 
         return self.normalize_plan(plan)
