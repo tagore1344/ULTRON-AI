@@ -1,43 +1,21 @@
-from app_controller import AppController
-from system_controller import SystemController
+from ai.tools.tool_manager import ToolManager
 
 
 class ToolExecutor:
 
-    def __init__(self):
+    def __init__(self, speech):
 
-        self.app = AppController()
-
-        self.system = SystemController()
+        self.tool_manager = ToolManager(speech)
 
     def execute(self, task):
 
-        tool = task.tool
+        tool = self.tool_manager.get_tool(task.tool)
 
-        if tool == "app_launcher":
+        if tool is None:
+            return f"Unknown Tool: {task.tool}"
 
-            application = task.parameters.get(
-                "application"
-            )
+        try:
+            return tool.execute(task)
 
-            return self.app.open_application(
-                application
-            )
-
-        elif tool == "system":
-
-            action = task.parameters.get(
-                "action"
-            )
-
-            return self.system.execute(
-                action
-            )
-
-        elif tool == "ai":
-
-            return "Forward task to AI"
-
-        else:
-
-            return f"Unknown Tool: {tool}"
+        except Exception as e:
+            return f"Tool Error ({task.tool}): {e}"

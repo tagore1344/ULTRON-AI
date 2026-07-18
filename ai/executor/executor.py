@@ -4,11 +4,11 @@ from .tool_executor import ToolExecutor
 
 class Executor:
 
-    def __init__(self):
+    def __init__(self, speech):
 
         self.context = ExecutionContext()
 
-        self.tool_executor = ToolExecutor()
+        self.tool_executor = ToolExecutor(speech)
 
     def execute_tasks(self, tasks):
 
