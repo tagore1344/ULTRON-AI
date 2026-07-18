@@ -14,8 +14,4 @@ class ToolExecutor:
         if tool is None:
             return f"Unknown Tool: {task.tool}"
 
-        try:
-            return tool.execute(task)
-
-        except Exception as e:
-            return f"Tool Error ({task.tool}): {e}"
+        return tool.execute(task)

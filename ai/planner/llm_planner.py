@@ -5,32 +5,92 @@ from ai.agents.gemini_agent import ask_gemini
 
 class LLMPlanner:
 
-    def create_plan(self, user_request):
+    def __init__(self):
+        pass
 
-        prompt = f"""
-You are an AI Planner.
+    def create_prompt(self, user_input):
 
-Convert the user's request into JSON.
+        return f"""
+You are an AI planner.
 
-Return ONLY valid JSON.
+Convert the user's request into a JSON array.
 
-Example:
+Examples:
 
+User:
+Open Chrome
+
+Output:
 [
     {{
-        "action": "open",
-        "target": "chrome"
-    }},
-    {{
-        "action": "search",
-        "query": "python tutorial"
+        "action":"open",
+        "target":"chrome"
     }}
 ]
 
-User Request:
+User:
+Close Chrome
 
-{user_request}
+Output:
+[
+    {{
+        "action":"close",
+        "target":"chrome"
+    }}
+]
+
+User:
+Search Python decorators
+
+Output:
+[
+    {{
+        "action":"search",
+        "query":"Python decorators"
+    }}
+]
+
+User:
+{user_input}
+
+Return ONLY JSON.
 """
+
+    def normalize_plan(self, plan):
+
+        normalized = []
+
+        for item in plan:
+
+            action = item.get("action", "").lower()
+
+            if action == "search":
+
+                target = item.get("target", "").lower()
+
+                if target == "youtube":
+
+                    item["action"] = "youtube_search"
+
+                elif target == "github":
+
+                    item["action"] = "github_search"
+
+                elif target == "wikipedia":
+
+                    item["action"] = "wikipedia_search"
+
+                else:
+
+                    item["action"] = "google_search"
+
+            normalized.append(item)
+
+        return normalized
+
+    def create_plan(self, user_input):
+
+        prompt = self.create_prompt(user_input)
 
         response = ask_gemini(prompt)
 
@@ -38,28 +98,10 @@ User Request:
         print(response)
         print("\n===========================\n")
 
-        # Remove markdown code fences if present
+        response = response.replace("```json", "")
+        response = response.replace("```", "")
         response = response.strip()
 
-        if response.startswith("```json"):
-            response = response.replace("```json", "", 1)
+        plan = json.loads(response)
 
-        if response.startswith("```"):
-            response = response.replace("```", "", 1)
-
-        if response.endswith("```"):
-            response = response[:-3]
-
-        response = response.strip()
-
-        try:
-
-            plan = json.loads(response)
-
-            return plan
-
-        except Exception as e:
-
-            print("JSON Error:", e)
-
-            return []
+        return self.normalize_plan(plan)

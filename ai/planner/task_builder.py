@@ -9,61 +9,24 @@ class TaskBuilder:
 
         priority = 1
 
-        websites = [
-            "google",
-            "youtube",
-            "github",
-            "linkedin",
-            "gmail",
-            "chatgpt",
-            "claude",
-            "deepseek",
-            "stackoverflow",
-            "wikipedia"
-        ]
-
         for item in plan:
 
             action = item.get("action")
 
+            # ----------------------------
+            # Desktop Apps
+            # ----------------------------
+
             if action == "open":
 
-                target = item["target"].lower()
-
-                if target in websites:
-
-                    task = Task(
-                        name=f"Open {target}",
-                        description=f"Open {target}",
-                        tool="browser",
-                        priority=priority,
-                        parameters={
-                            "website": target
-                        }
-                    )
-
-                else:
-
-                    task = Task(
-                        name=f"Open {target}",
-                        description=f"Launch {target}",
-                        tool="app_launcher",
-                        priority=priority,
-                        parameters={
-                            "application": target,
-                            "action": "open"
-                        }
-                    )
-
-            elif action == "search":
-
                 task = Task(
-                    name="Search Web",
-                    description=item["query"],
-                    tool="web_search",
+                    name=f"Open {item['target']}",
+                    description=f"Launch {item['target']}",
+                    tool="app_launcher",
                     priority=priority,
                     parameters={
-                        "query": item["query"]
+                        "application": item["target"],
+                        "action": "open"
                     }
                 )
 
@@ -80,12 +43,89 @@ class TaskBuilder:
                     }
                 )
 
+            # ----------------------------
+            # Browser Searches
+            # ----------------------------
+
+            elif action == "google_search":
+
+                task = Task(
+                    name="Google Search",
+                    description=item["query"],
+                    tool="browser_automation",
+                    priority=priority,
+                    parameters={
+                        "action": "google_search",
+                        "query": item["query"]
+                    }
+                )
+
+            elif action == "youtube_search":
+
+                task = Task(
+                    name="YouTube Search",
+                    description=item["query"],
+                    tool="browser_automation",
+                    priority=priority,
+                    parameters={
+                        "action": "youtube_search",
+                        "query": item["query"]
+                    }
+                )
+
+            elif action == "github_search":
+
+                task = Task(
+                    name="GitHub Search",
+                    description=item["query"],
+                    tool="browser_automation",
+                    priority=priority,
+                    parameters={
+                        "action": "github_search",
+                        "query": item["query"]
+                    }
+                )
+
+            elif action == "wikipedia_search":
+
+                task = Task(
+                    name="Wikipedia Search",
+                    description=item["query"],
+                    tool="browser_automation",
+                    priority=priority,
+                    parameters={
+                        "action": "wikipedia_search",
+                        "query": item["query"]
+                    }
+                )
+
+            # ----------------------------
+            # Browser URLs
+            # ----------------------------
+
+            elif action == "open_url":
+
+                task = Task(
+                    name="Open URL",
+                    description=item["url"],
+                    tool="browser_automation",
+                    priority=priority,
+                    parameters={
+                        "action": "open_url",
+                        "url": item["url"]
+                    }
+                )
+
+            # ----------------------------
+            # Unknown
+            # ----------------------------
+
             else:
 
                 task = Task(
-                    name="AI Chat",
-                    description="General AI Conversation",
-                    tool="ai",
+                    name="Unknown Task",
+                    description=str(item),
+                    tool="unknown",
                     priority=priority,
                     parameters=item
                 )
