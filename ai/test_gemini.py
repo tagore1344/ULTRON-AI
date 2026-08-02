@@ -1,8 +1,12 @@
-from gemini_client import ask_gemini
+from ai.agents.gemini_agent import ask_gemini
 
-question = input("Ask Gemini: ")
 
-answer = ask_gemini(question)
+def main():
+    question = input("Ask Gemini: ")
+    answer = ask_gemini(question)
+    print("\nAnswer:\n")
+    print(answer)
 
-print("\nAnswer:\n")
-print(answer)
+
+if __name__ == "__main__":
+    main()

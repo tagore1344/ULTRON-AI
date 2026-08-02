@@ -1,8 +1,12 @@
-from ai_router import ask_ai
+from ai.ai_router import ask_ai
 
-question = input("Ask ULTRON AI: ")
 
-answer = ask_ai(question, provider="gemini")
+def main():
+    question = input("Ask ULTRON AI: ")
+    answer = ask_ai(question, provider="gemini")
+    print("\nULTRON:\n")
+    print(answer)
 
-print("\nULTRON:\n")
-print(answer)
+
+if __name__ == "__main__":
+    main()

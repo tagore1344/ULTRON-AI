@@ -1,19 +1,24 @@
 from ai.orchestrator.ai_orchestrator import AIOrchestrator
 
-brain = AIOrchestrator()
 
-print("=" * 50)
-print("         ULTRON AI")
-print("=" * 50)
+def main():
+    brain = AIOrchestrator()
 
-while True:
+    print("=" * 50)
+    print("         ULTRON AI")
+    print("=" * 50)
 
-    question = input("\nYou: ")
+    while True:
+        question = input("\nYou: ")
 
-    if question.lower() == "exit":
-        break
+        if question.lower() == "exit":
+            break
 
-    answer = brain.ask(question)
+        answer = brain.ask(question)
 
-    print("\nULTRON:\n")
-    print(answer)
+        print("\nULTRON:\n")
+        print(answer)
+
+
+if __name__ == "__main__":
+    main()

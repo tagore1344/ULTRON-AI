@@ -1,8 +1,8 @@
-from gemini_client import ask_gemini
+from ai.agents.gemini_agent import ask_gemini
 
 # Uncomment these after they are working
-# from openai_client import ask_openai
-# from deepseek_client import ask_deepseek
+# from ai.agents.openai_agent import ask_openai
+# from ai.agents.deepseek_agent import ask_deepseek
 
 
 def ask_ai(prompt, provider="gemini"):
