@@ -1,12 +1,12 @@
-# services/speech_service.py — Speech service layer
+# core/speech/speech_engine.py — Speech engine wrapper
 try:
     from speech_engine_advanced import AdvancedSpeechEngine
 except Exception:
     AdvancedSpeechEngine = None
 
 
-class SpeechService:
-    """Service layer for speech — wraps the advanced speech engine."""
+class SpeechEngine:
+    """Speech engine that wraps AdvancedSpeechEngine for TTS and STT."""
 
     def __init__(self):
         self.engine = None
@@ -14,7 +14,7 @@ class SpeechService:
             try:
                 self.engine = AdvancedSpeechEngine()
             except Exception as e:
-                print(f"[SPEECH SERVICE] Engine init failed: {e}")
+                print(f"[SPEECH] Engine init failed: {e}")
 
     def speak(self, text):
         """Speak the given text aloud."""
@@ -23,7 +23,7 @@ class SpeechService:
                 self.engine.speak(text)
                 return
             except Exception as e:
-                print(f"[SPEECH SERVICE] speak error: {e}")
+                print(f"[SPEECH] speak error: {e}")
         print(f"[ULTRON TTS]: {text}")
 
     def listen(self, timeout=7):
@@ -32,5 +32,5 @@ class SpeechService:
             try:
                 return self.engine.listen(timeout=timeout)
             except Exception as e:
-                print(f"[SPEECH SERVICE] listen error: {e}")
+                print(f"[SPEECH] listen error: {e}")
         return ""

@@ -1,0 +1,1 @@
+# core package — shared configuration, constants, logging, and utilities
