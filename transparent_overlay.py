@@ -1,8 +1,22 @@
 # transparent_overlay.py
 import sys
-from PyQt6.QtCore import Qt, QTimer, pyqtSlot
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QGraphicsDropShadowEffect
-from PyQt6.QtGui import QFont, QColor
+
+try:
+    from PyQt6.QtCore import Qt, QTimer, pyqtSlot
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QGraphicsDropShadowEffect
+    from PyQt6.QtGui import QFont, QColor
+except Exception:
+    Qt = None
+    QTimer = None
+    pyqtSlot = lambda *args, **kwargs: (lambda f: f)
+    QApplication = None
+    QMainWindow = object
+    QLabel = object
+    QVBoxLayout = object
+    QWidget = object
+    QGraphicsDropShadowEffect = object
+    QFont = object
+    QColor = object
 
 class UltronTopOverlay(QMainWindow):
     def __init__(self):

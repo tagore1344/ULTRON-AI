@@ -1,8 +1,20 @@
-import sounddevice as sd
-import numpy as np
-from faster_whisper import WhisperModel
 import threading
 import time
+
+try:
+    import sounddevice as sd
+except Exception:
+    sd = None
+
+try:
+    import numpy as np
+except Exception:
+    np = None
+
+try:
+    from faster_whisper import WhisperModel
+except Exception:
+    WhisperModel = None
 
 
 class VoiceListener:
@@ -11,15 +23,19 @@ class VoiceListener:
 
         self.callback = callback
 
-        print("[VOICE] Loading Whisper model...")
-
-        self.whisper = WhisperModel(
-            "medium",
-            device="cpu",
-            compute_type="int8"
-        )
-
-        print("[VOICE] Whisper ready!")
+        self.whisper = None
+        if WhisperModel is not None:
+            try:
+                print("[VOICE] Loading Whisper model...")
+                self.whisper = WhisperModel(
+                    "medium",
+                    device="cpu",
+                    compute_type="int8"
+                )
+                print("[VOICE] Whisper ready!")
+            except Exception:
+                self.whisper = None
+                print("[VOICE] Whisper model unavailable")
 
         self.sample_rate = 16000
 
@@ -29,6 +45,10 @@ class VoiceListener:
     # MAIN LISTEN LOOP
     # ─────────────────────────────────────
     def listen_loop(self):
+
+        if sd is None or self.whisper is None:
+            print("[VOICE] Voice listener is unavailable in this environment")
+            return
 
         print("[VOICE] Continuous listening started...")
 

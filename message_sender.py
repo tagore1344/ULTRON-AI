@@ -3,7 +3,11 @@ import os
 import time
 import webbrowser
 import urllib.parse
-import pyautogui
+
+try:
+    import pyautogui
+except Exception:
+    pyautogui = None
 
 class MessageSender:
     def __init__(self, speech):

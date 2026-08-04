@@ -1,8 +1,16 @@
 # face_id_advanced.py — COMPLETELY FIXED
-import cv2
 import pickle
 import os
-import numpy as np
+
+try:
+    import cv2
+except Exception:
+    cv2 = None
+
+try:
+    import numpy as np
+except Exception:
+    np = None
 
 class AdvancedFaceID:
     def __init__(self):
@@ -31,6 +39,10 @@ class AdvancedFaceID:
                 print(f"[FACE] Load error: {e}")
 
     def enroll_face(self, name="you"):
+        if cv2 is None:
+            print("[FACE] OpenCV is unavailable in this environment")
+            return False
+
         print("[FACE] Look at the camera.")
         video_capture = cv2.VideoCapture(0)
         if not video_capture.isOpened():
@@ -67,6 +79,10 @@ class AdvancedFaceID:
         return True
 
     def verify_face(self):
+        if cv2 is None:
+            print("[FACE] OpenCV is unavailable in this environment")
+            return True
+
         if not self.is_enrolled or self.enrolled_face is None:
             print("[FACE] No enrolled face. Skipping verification.")
             return True

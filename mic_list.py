@@ -1,9 +1,15 @@
-import pyaudio
+try:
+    import pyaudio
+except Exception:
+    pyaudio = None
 
-p = pyaudio.PyAudio()
+if pyaudio is None:
+    print("[MIC LIST] Audio backend unavailable")
+else:
+    p = pyaudio.PyAudio()
 
-for i in range(p.get_device_count()):
+    for i in range(p.get_device_count()):
 
-    info = p.get_device_info_by_index(i)
+        info = p.get_device_info_by_index(i)
 
-    print(i, info['name'])
+        print(i, info['name'])

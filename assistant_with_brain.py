@@ -1,14 +1,26 @@
 # assistant_with_brain.py
 # FIXED THREADING VERSION FOR ULTRON MATRIX
 
-from transparent_overlay import UltronTopOverlay
-from PyQt6.QtWidgets import QApplication
+try:
+    from transparent_overlay import UltronTopOverlay
+except Exception:
+    UltronTopOverlay = None
+
+try:
+    from PyQt6.QtWidgets import QApplication
+except Exception:
+    QApplication = None
+
 import sys
 import os
 import time
 import random
 import threading
-import pyautogui
+
+try:
+    import pyautogui
+except Exception:
+    pyautogui = None
 
 from memory_engine import MemoryEngine
 from speech_engine_advanced import AdvancedSpeechEngine

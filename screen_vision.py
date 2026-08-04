@@ -1,13 +1,24 @@
 # screen_vision.py
 
-import pyautogui
-import pytesseract
+try:
+    import pyautogui
+except Exception:
+    pyautogui = None
+
+try:
+    import pytesseract
+except Exception:
+    pytesseract = None
+
 from PIL import Image
 
 
 class ScreenVision:
 
     def capture_screen(self):
+
+        if pyautogui is None:
+            return ""
 
         screenshot = pyautogui.screenshot()
 
@@ -18,6 +29,9 @@ class ScreenVision:
         return path
 
     def extract_text(self, image_path):
+
+        if pytesseract is None:
+            return ""
 
         image = Image.open(image_path)
 

@@ -5,10 +5,14 @@ import time
 import datetime
 import webbrowser
 import urllib.parse
-import pyautogui
 import psutil
 import subprocess
 import threading
+
+try:
+    import pyautogui
+except Exception:
+    pyautogui = None
 
 try:
     import screen_brightness_control as sbc
@@ -49,8 +53,9 @@ class SystemController:
             self.volume_interface.SetMasterVolumeLevelScalar(new_level / 100, None)
             self.speech.speak(f"Volume {new_level} percent")
         else:
-            for _ in range(5):
-                pyautogui.press('volumeup')
+            if pyautogui is not None:
+                for _ in range(5):
+                    pyautogui.press('volumeup')
             self.speech.speak("Volume up")
 
     def volume_down(self, amount=10):
@@ -60,8 +65,9 @@ class SystemController:
             self.volume_interface.SetMasterVolumeLevelScalar(new_level / 100, None)
             self.speech.speak(f"Volume {new_level} percent")
         else:
-            for _ in range(5):
-                pyautogui.press('volumedown')
+            if pyautogui is not None:
+                for _ in range(5):
+                    pyautogui.press('volumedown')
             self.speech.speak("Volume down")
 
     def set_volume(self, level):
@@ -71,7 +77,8 @@ class SystemController:
         self.speech.speak(f"Volume set to {level} percent")
 
     def mute(self):
-        pyautogui.press('volumemute')
+        if pyautogui is not None:
+            pyautogui.press('volumemute')
         self.speech.speak("Muted")
 
     # ===== BRIGHTNESS =====

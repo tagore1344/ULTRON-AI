@@ -2,9 +2,21 @@
 
 import threading
 import time
-import numpy as np
-import pyaudio
-from faster_whisper import WhisperModel
+
+try:
+    import numpy as np
+except Exception:
+    np = None
+
+try:
+    import pyaudio
+except Exception:
+    pyaudio = None
+
+try:
+    from faster_whisper import WhisperModel
+except Exception:
+    WhisperModel = None
 
 
 class AdvancedWakeWordDetector:
@@ -24,7 +36,7 @@ class AdvancedWakeWordDetector:
 
         self.model = None
 
-        self.audio = pyaudio.PyAudio()
+        self.audio = pyaudio.PyAudio() if pyaudio is not None else None
 
         self.input_device_index = None
 
@@ -36,6 +48,10 @@ class AdvancedWakeWordDetector:
     # FIND WORKING MICROPHONE
     # ─────────────────────────────────────
     def _find_microphone(self):
+
+        if self.audio is None:
+            print("\n[WAKE] Audio backend unavailable; wake-word detection disabled.\n")
+            return
 
         print("\n[WAKE] Searching microphones...\n")
 
@@ -63,15 +79,22 @@ class AdvancedWakeWordDetector:
     # ─────────────────────────────────────
     def _load_model(self):
 
+        if WhisperModel is None:
+            print("[WAKE] Faster-Whisper unavailable; wake detector will stay idle")
+            return
+
         print("[WAKE] Loading Whisper model...")
 
-        self.model = WhisperModel(
-            "tiny.en",
-            device="cpu",
-            compute_type="int8"
-        )
-
-        print("[WAKE] ✅ Wake detector ready")
+        try:
+            self.model = WhisperModel(
+                "tiny.en",
+                device="cpu",
+                compute_type="int8"
+            )
+            print("[WAKE] ✅ Wake detector ready")
+        except Exception:
+            self.model = None
+            print("[WAKE] Wake detector model could not be initialized")
 
     # ─────────────────────────────────────
     # CHECK WAKE WORD
@@ -92,6 +115,9 @@ class AdvancedWakeWordDetector:
     # MAIN LOOP
     # ─────────────────────────────────────
     def _listen_loop(self):
+
+        if self.audio is None or self.model is None:
+            return
 
         try:
 

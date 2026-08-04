@@ -6,7 +6,12 @@ import webbrowser
 import threading
 import random
 import subprocess
-import pyautogui
+
+try:
+    import pyautogui
+except Exception:
+    pyautogui = None
+
 from speech_engine_advanced import AdvancedSpeechEngine
 from app_controller import AppController
 from system_controller import SystemController
