@@ -1,8 +1,7 @@
 from openai_client import ask_openai
 
-question = input("Ask OpenAI: ")
 
-answer = ask_openai(question)
-
-print("\nAnswer:\n")
-print(answer)
+def test_openai_smoke():
+    answer = ask_openai("Say hello in one short sentence.")
+    assert isinstance(answer, str)
+    assert answer

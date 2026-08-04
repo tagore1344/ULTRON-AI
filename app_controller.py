@@ -3,11 +3,23 @@ import subprocess
 import os
 import glob
 import psutil
-import pyautogui
-import pygetwindow as gw
-import winreg
 import time
 from config import CONFIG
+
+try:
+    import pyautogui
+except Exception:
+    pyautogui = None
+
+try:
+    import pygetwindow as gw
+except Exception:
+    gw = None
+
+try:
+    import winreg
+except Exception:
+    winreg = None
 
 class AppController:
     def __init__(self, speech):
@@ -279,6 +291,9 @@ class AppController:
             r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
         ]
 
+        if winreg is None:
+            return None
+
         for reg_path in reg_paths:
             for hive in [winreg.HKEY_LOCAL_MACHINE,
                          winreg.HKEY_CURRENT_USER]:
@@ -289,7 +304,6 @@ class AppController:
                         try:
                             sub_name = winreg.EnumKey(key, i)
                             sub_key  = winreg.OpenKey(key, sub_name)
-                            # Check display name
                             try:
                                 display = winreg.QueryValueEx(
                                     sub_key, "DisplayName"
@@ -301,17 +315,13 @@ class AppController:
                                             "InstallLocation"
                                         )[0]
                                         if path and os.path.exists(path):
-                                            # Find exe in that folder
                                             for f in os.listdir(path):
                                                 if f.endswith(".exe"):
-                                                    return os.path.join(
-                                                        path, f
-                                                    )
+                                                    return os.path.join(path, f)
                                     except:
                                         pass
                             except:
                                 pass
-                            # Check as App Path
                             try:
                                 path = winreg.QueryValueEx(
                                     sub_key, ""
@@ -345,11 +355,15 @@ class AppController:
         for key, cmd in self.win_commands.items():
             if key in app_name or app_name in key:
                 if cmd.endswith(":"):
-                    os.startfile(cmd)
+                    try:
+                        os.startfile(cmd)
+                    except Exception:
+                        subprocess.Popen(cmd, shell=True)
                 else:
-                    subprocess.Popen(cmd,
-                                     shell=True,
-                                     creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    try:
+                        subprocess.Popen(cmd, shell=True)
+                    except Exception:
+                        subprocess.Popen(cmd, shell=True)
                 self.speech.speak(f"Opening {key}")
                 return True
 
@@ -471,13 +485,14 @@ class AppController:
                 pass
 
         # Also close by window title
-        try:
-            for w in gw.getAllWindows():
-                if app_name in w.title.lower():
-                    w.close()
-                    closed = True
-        except:
-            pass
+        if gw is not None:
+            try:
+                for w in gw.getAllWindows():
+                    if app_name in w.title.lower():
+                        w.close()
+                        closed = True
+            except:
+                pass
 
         self.speech.speak(
             f"Closed {app_name}" if closed
@@ -486,12 +501,16 @@ class AppController:
 
     def switch_to_app(self, app_name: str):
         app_name = app_name.lower()
+        if gw is None:
+            self.speech.speak(f"Could not find {app_name} window")
+            return False
+
         for w in gw.getAllWindows():
             if app_name in w.title.lower() and w.title:
                 try:
                     w.activate()
                     time.sleep(0.3)
-                    w.activate()   # double activate
+                    w.activate()
                     self.speech.speak(f"Switched to {app_name}")
                     return True
                 except:
@@ -500,17 +519,22 @@ class AppController:
         return False
 
     def take_screenshot(self):
-        ts   = time.strftime("%Y%m%d_%H%M%S")
+        ts = time.strftime("%Y%m%d_%H%M%S")
         name = f"screenshot_{ts}.png"
-        pyautogui.screenshot().save(name)
-        self.speech.speak("Screenshot saved")
+        if pyautogui is not None:
+            try:
+                pyautogui.screenshot().save(name)
+                self.speech.speak("Screenshot saved")
+                return name
+            except Exception:
+                pass
+        self.speech.speak("Screenshot feature unavailable in this environment")
         return name
 
     def list_open_windows(self):
-        windows = [
-            w.title for w in gw.getAllWindows()
-            if w.title.strip()
-        ]
+        windows = []
+        if gw is not None:
+            windows = [w.title for w in gw.getAllWindows() if w.title.strip()]
         if windows:
             names = ", ".join(windows[:8])
             self.speech.speak(f"Open windows: {names}")

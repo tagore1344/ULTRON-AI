@@ -1,8 +1,7 @@
 from gemini_client import ask_gemini
 
-question = input("Ask Gemini: ")
 
-answer = ask_gemini(question)
-
-print("\nAnswer:\n")
-print(answer)
+def test_gemini_smoke():
+    answer = ask_gemini("Say hello in one short sentence.")
+    assert isinstance(answer, str)
+    assert answer

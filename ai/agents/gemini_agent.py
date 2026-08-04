@@ -1,14 +1,31 @@
 import os
-from dotenv import load_dotenv
-import google.generativeai as genai
+
+try:
+    from dotenv import load_dotenv
+except Exception:
+    def load_dotenv():
+        return False
+
+try:
+    import google.generativeai as genai
+except Exception:
+    genai = None
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = None
+if genai is not None:
+    try:
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        model = genai.GenerativeModel("gemini-2.5-flash")
+    except Exception:
+        model = None
 
-model = genai.GenerativeModel("gemini-2.5-flash")
 
 def ask_gemini(prompt: str) -> str:
+    if model is None:
+        return "Gemini Error: API dependency is unavailable in this environment."
+
     try:
         response = model.generate_content(prompt)
         return response.text

@@ -1,8 +1,7 @@
 from ai_router import ask_ai
 
-question = input("Ask ULTRON AI: ")
 
-answer = ask_ai(question, provider="gemini")
-
-print("\nULTRON:\n")
-print(answer)
+def test_router_smoke():
+    answer = ask_ai("Say hello in one short sentence.", provider="gemini")
+    assert isinstance(answer, str)
+    assert answer
