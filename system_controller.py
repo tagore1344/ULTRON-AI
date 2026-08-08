@@ -13,14 +13,17 @@ import threading
 try:
     import screen_brightness_control as sbc
     BRIGHTNESS_OK = True
-except:
+except ImportError:
+    sbc = None
     BRIGHTNESS_OK = False
 
 try:
     from comtypes import CLSCTX_ALL
     from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
     VOLUME_OK = True
-except:
+except ImportError:
+    AudioUtilities = None
+    IAudioEndpointVolume = None
     VOLUME_OK = False
 
 class SystemController:
@@ -81,7 +84,8 @@ class SystemController:
                 current = sbc.get_brightness()[0]
                 sbc.set_brightness(min(100, current + 10))
                 self.speech.speak("Brightness increased")
-            except:
+            except Exception as e:
+                print(f"[SYSTEM] Brightness up error: {e}")
                 self.speech.speak("Could not control brightness")
         else:
             self.speech.speak("Brightness control not available")
@@ -92,16 +96,22 @@ class SystemController:
                 current = sbc.get_brightness()[0]
                 sbc.set_brightness(max(0, current - 10))
                 self.speech.speak("Brightness decreased")
-            except:
+            except Exception as e:
+                print(f"[SYSTEM] Brightness down error: {e}")
                 self.speech.speak("Could not control brightness")
+        else:
+            self.speech.speak("Brightness control not available")
 
     def set_brightness(self, level):
         if BRIGHTNESS_OK:
             try:
                 sbc.set_brightness(int(level))
                 self.speech.speak(f"Brightness set to {level} percent")
-            except:
+            except Exception as e:
+                print(f"[SYSTEM] Set brightness error: {e}")
                 self.speech.speak("Brightness control failed")
+        else:
+            self.speech.speak("Brightness control not available")
 
     # ===== TIME & DATE =====
     def get_time(self):
@@ -136,24 +146,27 @@ class SystemController:
     def shutdown(self):
         self.speech.speak("Shutting down in 5 seconds")
         time.sleep(2)
-        os.system("shutdown /s /t 5")
+        subprocess.run(["shutdown", "/s", "/t", "5"], shell=False)
 
     def restart(self):
         self.speech.speak("Restarting in 5 seconds")
         time.sleep(2)
-        os.system("shutdown /r /t 5")
+        subprocess.run(["shutdown", "/r", "/t", "5"], shell=False)
 
     def sleep(self):
         self.speech.speak("Going to sleep")
         time.sleep(1)
-        os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
+        subprocess.run(
+            ["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"],
+            shell=False
+        )
 
     def lock_screen(self):
         ctypes.windll.user32.LockWorkStation()
         self.speech.speak("Screen locked")
 
     def cancel_shutdown(self):
-        os.system("shutdown /a")
+        subprocess.run(["shutdown", "/a"], shell=False)
         self.speech.speak("Shutdown cancelled")
 
     # ===== MEDIA =====

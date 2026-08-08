@@ -2,6 +2,7 @@
 import subprocess
 import os
 import glob
+import re
 import psutil
 import time
 from config import CONFIG
@@ -318,9 +319,9 @@ class AppController:
                                             for f in os.listdir(path):
                                                 if f.endswith(".exe"):
                                                     return os.path.join(path, f)
-                                    except:
+                                    except OSError:
                                         pass
-                            except:
+                            except OSError:
                                 pass
                             try:
                                 path = winreg.QueryValueEx(
@@ -329,13 +330,18 @@ class AppController:
                                 if (path and os.path.exists(path)
                                         and app_name in sub_name.lower()):
                                     return path
-                            except:
+                            except OSError:
                                 pass
-                        except:
+                        except OSError:
                             continue
-                except:
+                except OSError:
                     continue
         return None
+
+    # ── Sanitization ────────────────────────────
+    def _sanitize_app_name(self, app_name):
+        """Strip anything outside [a-zA-Z0-9 _.-] to prevent shell injection."""
+        return re.sub(r'[^a-zA-Z0-9 _.-]', '', app_name)
 
     # ── Main Open Method ────────────────────────
     def open_app(self, app_name: str):
@@ -357,13 +363,13 @@ class AppController:
                 if cmd.endswith(":"):
                     try:
                         os.startfile(cmd)
-                    except Exception:
-                        subprocess.Popen(cmd, shell=True)
+                    except OSError:
+                        subprocess.Popen([cmd])
                 else:
                     try:
-                        subprocess.Popen(cmd, shell=True)
-                    except Exception:
-                        subprocess.Popen(cmd, shell=True)
+                        subprocess.Popen([cmd])
+                    except OSError:
+                        subprocess.Popen([cmd])
                 self.speech.speak(f"Opening {key}")
                 return True
 
@@ -374,7 +380,7 @@ class AppController:
                     os.startfile(protocol)
                     self.speech.speak(f"Opening {key}")
                     return True
-                except:
+                except OSError:
                     pass
 
         # ── 3. Browser shortcuts ─────────────────
@@ -414,29 +420,29 @@ class AppController:
             return True
 
         # ── 7. Windows shell / start command ─────
-        try:
-            result = subprocess.run(
-                f'start "" "{app_name}"',
-                shell=True,
-                capture_output=True,
-                timeout=3
-            )
-            if result.returncode == 0:
-                self.speech.speak(f"Opening {app_name}")
-                return True
-        except:
-            pass
+        safe_name = self._sanitize_app_name(app_name)
+        if safe_name:
+            try:
+                result = subprocess.run(
+                    f'start "" "{safe_name}"',
+                    shell=True,
+                    capture_output=True,
+                    timeout=3
+                )
+                if result.returncode == 0:
+                    self.speech.speak(f"Opening {safe_name}")
+                    return True
+            except (subprocess.SubprocessError, OSError):
+                pass
 
         # ── 8. Try as executable directly ────────
-        try:
-            subprocess.Popen(
-                f"{app_name}.exe",
-                shell=True
-            )
-            self.speech.speak(f"Opening {app_name}")
-            return True
-        except:
-            pass
+        if safe_name:
+            try:
+                subprocess.Popen([f"{safe_name}.exe"])
+                self.speech.speak(f"Opening {safe_name}")
+                return True
+            except OSError:
+                pass
 
         # ── 9. Search Start Menu ─────────────────
         self._search_start_menu(app_name)
@@ -491,7 +497,7 @@ class AppController:
                     if app_name in w.title.lower():
                         w.close()
                         closed = True
-            except:
+            except Exception:
                 pass
 
         self.speech.speak(
@@ -513,7 +519,7 @@ class AppController:
                     w.activate()
                     self.speech.speak(f"Switched to {app_name}")
                     return True
-                except:
+                except Exception:
                     pass
         self.speech.speak(f"Could not find {app_name} window")
         return False
