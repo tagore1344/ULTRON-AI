@@ -1,10 +1,12 @@
 # backend/api/routes/commands.py
 import logging
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 
 from backend.schemas.command import CommandRequest, CommandResponse
 from backend.services.command_service import command_service
+from backend.security.authorization import require_safe_commands_permission
+from backend.security.authentication import AuthenticatedDevice
 
 logger = logging.getLogger("ultron-api")
 router = APIRouter()
@@ -15,10 +17,14 @@ router = APIRouter()
     response_model=CommandResponse,
     status_code=status.HTTP_200_OK,
     summary="Execute System Commands on Host Laptop",
-    description="Submits an allowlisted system command to be statefully audited, validated, and executed."
+    description="Submits an allowlisted system command to be statefully audited, validated, and executed. Requires Bearer Authentication."
 )
-async def post_command(payload: CommandRequest):
+async def post_command(
+    payload: CommandRequest,
+    device: AuthenticatedDevice = Depends(require_safe_commands_permission)
+):
     try:
+        logger.info("Command '%s' submitted by paired device: %s (%s)", payload.command, device.device_id, device.device_name)
         execution_result = await command_service.execute_command(
             payload.command,
             payload.parameters

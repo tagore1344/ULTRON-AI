@@ -7,10 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
 from backend.logging_config import configure_logging
+from backend.database.connection import initialize_database
 from backend.api.routes.health import router as health_router
 from backend.api.routes.chat import router as chat_router
 from backend.api.routes.system import router as system_router
 from backend.api.routes.commands import router as command_router
+from backend.api.routes.auth import router as auth_router
 from backend.api.websocket.connection_manager import manager
 
 # Configure standard structured logging
@@ -19,6 +21,9 @@ logger = configure_logging()
 
 def create_app() -> FastAPI:
     """FastAPI Application Factory."""
+    # 1. Initialize SQLite database, directory buffers, and default schemas statefully
+    initialize_database()
+
     app = FastAPI(
         title=settings.app_title,
         description=settings.app_description,
@@ -27,8 +32,7 @@ def create_app() -> FastAPI:
         redoc_url="/redoc"
     )
 
-    # 1. Configure CORS middleware securely
-    # Allow comma-separated strings or defaults from config
+    # 2. Configure CORS middleware securely
     cors_origins = settings.cors_origins
     if len(cors_origins) == 1 and cors_origins[0] == "*":
         allow_origins = ["*"]
@@ -43,13 +47,14 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # 2. Register REST router namespaces under /api/v1
+    # 3. Register REST router namespaces under /api/v1
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(chat_router, prefix="/api/v1")
     app.include_router(system_router, prefix="/api/v1")
     app.include_router(command_router, prefix="/api/v1")
+    app.include_router(auth_router, prefix="/api/v1")
 
-    # 3. Base Optional Root Endpoint
+    # 4. Base Optional Root Endpoint
     @app.get("/", summary="Root Endpoint")
     async def get_root():
         return {
@@ -57,7 +62,7 @@ def create_app() -> FastAPI:
             "api": "v1"
         }
 
-    # 4. Central Exception Handler to prevent stack trace leakage
+    # 5. Central Exception Handler to prevent stack trace leakage
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
         logger.error("Unhandled global API server exception: %s", exc, exc_info=True)
@@ -72,7 +77,7 @@ def create_app() -> FastAPI:
             }
         )
 
-    # 5. Base WebSocket endpoint as defined in ARCHITECTURE.md
+    # 6. Base WebSocket endpoint as defined in ARCHITECTURE.md
     @app.websocket("/ws")
     @app.websocket("/api/v1/ws")
     async def websocket_endpoint(websocket: WebSocket):
