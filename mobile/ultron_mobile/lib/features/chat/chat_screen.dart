@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:ultron_mobile/app/theme.dart';
 import 'package:ultron_mobile/features/chat/chat_controller.dart';
 import 'package:ultron_mobile/features/chat/chat_message.dart';
@@ -16,6 +17,9 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  
+  // Real Android Speech-to-Text Service Instance (Least Privilege Principle)
+  final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
   String _listeningStatus = "Tap Mic to Speak";
 
@@ -23,6 +27,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _textController.dispose();
     _scrollController.dispose();
+    _speech.stop();
     super.dispose();
   }
 
@@ -47,29 +52,66 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
   }
 
-  /// Simulate native local speech recognition cleanly without raw audio uploads (Phase 6 rule)
+  /// Real Android local speech recognition using speech_to_text package
   void _triggerVoiceInput(ChatController controller) async {
-    // 1. Request local microphoning permission on user click (Least Privilege Rule)
-    setState(() {
-      _isListening = true;
-      _listeningStatus = "Listening...";
-    });
+    if (_isListening) {
+      // If currently listening, stop and submit
+      _speech.stop();
+      setState(() {
+        _isListening = false;
+      });
+      return;
+    }
 
-    // Emulate transcribing a harmless phrase after 2 seconds
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // 1. Request microphone and service initialization statefully at runtime
+      bool available = await _speech.initialize(
+        onStatus: (status) {
+          setState(() {
+            if (status == "listening") {
+              _listeningStatus = "Listening... Speak now";
+            } else if (status == "notListening") {
+              _isListening = false;
+            }
+          });
+        },
+        onError: (errorNotification) {
+          setState(() {
+            _isListening = false;
+            _listeningStatus = "Voice unavailable: ${errorNotification.errorString}";
+          });
+        },
+      );
 
-    if (!mounted) return;
+      if (available) {
+        setState(() {
+          _isListening = true;
+          _listeningStatus = "Initializing microphone...";
+        });
 
-    setState(() {
-      _isListening = false;
-    });
-
-    const transcribedText = "Get system status";
-    _textController.text = transcribedText;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Voice Transcribed: 'Get system status'")),
-    );
+        // 2. Begin listening. Translates speech to text locally on device
+        _speech.listen(
+          onResult: (result) {
+            setState(() {
+              _textController.text = result.recognizedWords;
+            });
+          },
+          listenFor: const Duration(seconds: 10),
+          pauseFor: const Duration(seconds: 3),
+          cancelOnError: true,
+          partialResults: true,
+        );
+      } else {
+        setState(() {
+          _listeningStatus = "Speech recognition is unavailable on this device.";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isListening = false;
+        _listeningStatus = "Failed to initialize microphone: $e";
+      });
+    }
   }
 
   void _copyToClipboard(String text) {
@@ -129,8 +171,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
 
-            // Voice Listening Banner HUD
-            if (_isListening)
+            // Real Voice Input Status Banner
+            if (_isListening || _speech.isListening)
               Container(
                 color: UltronTheme.spaceSurface,
                 padding: const EdgeInsets.symmetric(vertical: 12),
