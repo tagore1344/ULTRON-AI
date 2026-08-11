@@ -27,7 +27,7 @@ def ask_openai(prompt: str) -> str:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",

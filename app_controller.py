@@ -364,12 +364,15 @@ class AppController:
                     try:
                         os.startfile(cmd)
                     except OSError:
-                        subprocess.Popen([cmd])
+                        try:
+                            subprocess.Popen([cmd])
+                        except OSError:
+                            pass
                 else:
                     try:
                         subprocess.Popen([cmd])
                     except OSError:
-                        subprocess.Popen([cmd])
+                        pass
                 self.speech.speak(f"Opening {key}")
                 return True
 
