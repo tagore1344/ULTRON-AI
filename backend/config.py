@@ -13,7 +13,7 @@ class BackendSettings(BaseSettings):
     port: int = 8000
     env: str = "development"
     log_level: str = "INFO"
-    cors_origins: Union[List[str], str] = ["*"]
+    cors_origins: Union[List[str], str] = []
 
     # Secure metadata
     app_title: str = "ULTRON-AI API"

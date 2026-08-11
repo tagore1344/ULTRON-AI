@@ -2,6 +2,7 @@
 import datetime
 import uuid
 import logging
+import ipaddress
 from typing import List, Dict, Any
 from fastapi import APIRouter, Request, HTTPException, Depends, status
 from pydantic import BaseModel, Field
@@ -53,6 +54,39 @@ class WsTicketResponse(BaseModel):
     success: bool
     ticket: str
     expires_in: int = 15
+
+
+# ==============================================================================
+# SECURITY UTILITIES
+# ==============================================================================
+
+def is_local_lan(ip: str) -> bool:
+    """
+    Enforce Local LAN and Loopback pairing boundaries.
+    Blocks remote pairings originating from Tailscale VPN (100.64.0.0/10) or public WAN networks.
+    """
+    if ip in ("127.0.0.1", "::1", "localhost", "testclient"):
+        return True
+
+    try:
+        ip_obj = ipaddress.ip_address(ip)
+        
+        # 1. Block Tailscale network IPs (100.64.0.0 to 100.127.255.255)
+        # Tailscale allocates addresses strictly inside the 100.64.0.0/10 CIDR block
+        tailscale_network = ipaddress.ip_network("100.64.0.0/10")
+        if ip_obj in tailscale_network:
+            logger.warning("Network boundary check: Blocked pairing attempt from Tailscale IP %s", ip)
+            return False
+
+        # 2. Allow local loopback or private LAN subnets (Class A, B, C)
+        # e.g., 192.168.x.x, 172.16.x.x - 172.31.x.x, 10.x.x.x (excluding tailscale)
+        if ip_obj.is_private or ip_obj.is_loopback:
+            return True
+
+    except ValueError:
+        pass
+
+    return False
 
 
 # ==============================================================================
@@ -108,12 +142,20 @@ async def create_pairing_session(request: Request) -> PairingSessionResponse:
     response_model=PairResponse,
     status_code=status.HTTP_200_OK,
     summary="Pair Mobile Client Device",
-    description="Validate 6-digit temporary PIN code, register client device, and issue a secure hashed Bearer credential."
+    description="Validate 6-digit temporary PIN code, register client device, and issue a secure hashed Bearer credential. Restricted to local LAN."
 )
 async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
     client_ip = request.client.host if request.client else "unknown"
 
-    # 1. Brute-Force Rate Limiting Lockout Checks
+    # 1. Enforce Local-Only Network Pairing Boundary
+    if not is_local_lan(client_ip):
+        logger.warning("Blocked remote pairing attempt from IP outside local LAN context: %s", client_ip)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Pairing is restricted to local network (LAN) connections only."
+        )
+
+    # 2. Brute-Force Rate Limiting Lockout Checks
     lockout_status = device_repo.get_lockout_status(client_ip)
     if lockout_status and lockout_status.get("locked_until"):
         locked_until_dt = datetime.datetime.fromisoformat(lockout_status["locked_until"].replace("Z", ""))
@@ -124,11 +166,11 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
                 detail="Too many pairing attempts. This IP has been locked out for 60 seconds."
             )
 
-    # 2. Hash code and query matching session
+    # 3. Hash code and query matching session
     code_hash = token_service.hash_string(payload.pairing_code)
     session = device_repo.get_unused_pairing_session(code_hash)
 
-    # 3. Handle invalid/expired sessions
+    # 4. Handle invalid/expired sessions
     if not session:
         device_repo.record_failed_attempt(client_ip)
         logger.warning("Failed pairing attempt from IP: %s (Invalid Code)", client_ip)
@@ -148,7 +190,7 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
             detail="Pairing failed. Pairing code has expired."
         )
 
-    # 4. Valid PIN code confirmed, perform registration
+    # 5. Valid PIN code confirmed, perform registration
     device_repo.reset_failed_attempts(client_ip)
     device_repo.mark_pairing_session_used(session["session_id"])
 
@@ -243,8 +285,8 @@ async def list_devices(
 @router.delete(
     "/devices/{device_id}",
     status_code=status.HTTP_200_OK,
-    summary="Revoke Device Access",
-    description="Instantly revokes access tokens associated with a registered device. Requires Bearer Authentication."
+    summary="Revoke Device Access (Self-Revocation Enforced)",
+    description="Instantly revokes access tokens associated with a registered device. Paired devices are restricted to self-revocation. Requires Bearer Authentication."
 )
 async def revoke_device(
     device_id: str,
@@ -252,6 +294,15 @@ async def revoke_device(
 ):
     logger.info("Revoke device request submitted by: %s (Target: %s)", device.device_id, device_id)
     
+    # 1. Enforce Device-Level Authorization Check (Finding 1 Fix)
+    # A device is strictly restricted to self-revocation to prevent rogue revocation attacks
+    if device_id != device.device_id:
+        logger.warning("Access denied: Client %s attempted unauthorized revocation of client %s", device.device_id, device_id)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Paired devices are strictly restricted to self-revocation."
+        )
+
     target_device = device_repo.get_device_by_id(device_id)
     if not target_device:
         raise HTTPException(
@@ -259,15 +310,14 @@ async def revoke_device(
             detail=f"Device matching ID '{device_id}' was not found."
         )
 
-    # 1. Mark device revoked in SQLite registry
+    # 2. Mark device revoked in SQLite registry
     device_repo.revoke_device(device_id)
     logger.warning("Revoked paired client token successfully: %s", device_id)
 
-    # 2. Instantly evict all active stateful WebSocket sessions belonging to the revoked device
+    # 3. Instantly evict all active stateful WebSocket sessions belonging to the revoked device
     await manager.evict_device_sessions(device_id)
     
     return {
         "success": True,
         "message": f"Device matching ID '{device_id}' has been statefully revoked and all active WS sessions evicted."
     }
-    

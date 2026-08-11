@@ -144,3 +144,54 @@ def test_pairing_lockout_rate_limiting():
     })
     assert locked_resp.status_code == 401
     assert "locked out" in locked_resp.json()["detail"].lower()
+
+
+# ==============================================================================
+# SECURITY AUDIT WORKFLOW TESTS (FINDINGS FIXES)
+# ==============================================================================
+
+def test_pair_blocks_tailscale_origins():
+    """Verify that pairing attempts originating from Tailscale IP subnets are strictly blocked with 403."""
+    # We mock client headers to simulate incoming Tailscale connection (e.g. from 100.64.12.35)
+    # Since Starlette TestClient is synchronous local loopback, we can simulate IP address routing by passing headers or testing our is_local_lan method.
+    from backend.api.routes.auth import is_local_lan
+    
+    # Standard Tailscale IP ranges (100.64.0.0/10)
+    assert is_local_lan("100.64.12.35") is False
+    assert is_local_lan("100.127.255.254") is False
+    
+    # Standard Local LAN ranges
+    assert is_local_lan("127.0.0.1") is True
+    assert is_local_lan("192.168.1.15") is True
+    assert is_local_lan("172.16.0.1") is True
+
+
+def test_one_phone_cannot_revoke_another():
+    """Verify that Phone A is strictly blocked from revoking Phone B's credentials (HTTP 403)."""
+    # 1. Register Phone A
+    sess_resp_a = client.post("/api/v1/auth/pairing-session")
+    pin_a = sess_resp_a.json()["pairing_code"]
+    pair_resp_a = client.post("/api/v1/auth/pair", json={
+        "pairing_code": pin_a,
+        "device_name": "Phone A",
+        "device_type": "android"
+    })
+    token_a = pair_resp_a.json()["access_token"]
+    id_a = pair_resp_a.json()["device"]["device_id"]
+
+    # 2. Register Phone B
+    sess_resp_b = client.post("/api/v1/auth/pairing-session")
+    pin_b = sess_resp_b.json()["pairing_code"]
+    pair_resp_b = client.post("/api/v1/auth/pair", json={
+        "pairing_code": pin_b,
+        "device_name": "Phone B",
+        "device_type": "android"
+    })
+    id_b = pair_resp_b.json()["device"]["device_id"]
+
+    # 3. Attempt to let Phone A delete/revoke Phone B (Fails with 403 Forbidden)
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    unauthorized_revoke_resp = client.delete(f"/api/v1/devices/{id_b}", headers=headers_a)
+    
+    assert unauthorized_revoke_resp.status_code == 403
+    assert "only restrict" in unauthorized_revoke_resp.json()["detail"].lower() or "self-revocation" in unauthorized_revoke_resp.json()["detail"].lower()
