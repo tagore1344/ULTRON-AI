@@ -34,20 +34,38 @@ The system utilizes an automated, highly-defended, five-tier pipeline to process
 
 ---
 
-## 🗺️ 2. Threat Model Matrix
+## 📐 2. Secure WAN Overlay Layer
 
-| Threat | Target Area | Severity | Mitigation Control |
-| :--- | :--- | :--- | :--- |
-| **Unauthorized LAN Client** | REST/WebSocket Access | **HIGH** | Bearer authentication (`Authorization: Bearer <token>`). Every request hashes and validates the token against SQLite. |
-| **PIN Brute-Forcing** | First-time Pairing | **HIGH** | 6-digit cryptographically secure PIN, valid for **180 seconds** only. The server applies an **automatic 60-second lockout** after 5 consecutive failures per IP. |
-| **Credential/Token Theft**| Paired Token Hijack | **HIGH** | The server **never stores raw access tokens in plaintext**—only their secure `SHA-256` hash. Device registries support immediate status revocation (`revoked = 1`), instantly evicting active WebSocket sessions. |
-| **Command Injection** | Local Host Terminal | **CRITICAL** | Payload parameters are parsed as strict structured values mapped to canonical tools. No raw shell commands (`sh`, `bash`, `cmd`, `powershell`) or string execution lines (`eval`, `exec`) are allowed. |
-| **Confirmation Replay** | System Automation | **HIGH** | Outbound requests use unique `request_id` values, locked for single-use, mapped to specific devices, and invalidated instantly on approval or 30s timeout. |
-| **Cross-Device Leakage** | Event Pushing | **MEDIUM** | Stateful `ConnectionManager` isolates socket routing (`send_to_device(device_id)`). Paired devices cannot view other clients' transaction lifecycles. |
+When communicating from outside your local home Wi-Fi, connection payloads are isolated inside a secure, encrypted overlay network (Tailscale / WireGuard):
+
+```
+┌────────────────────────────────────────────────────────┐
+│                   INTERNET WAN BOUNDARY                │
+│                                                        │
+│  [Android Phone] ──► Encrypted Tunnel ──► [Laptop Host]│
+│  (Tailscale IP)      (WireGuard / AEs)    (Tailscale IP)│
+│                                                │       │
+│                                                ▼       │
+│                                           ULTRON Core  │
+└────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 🔑 3. Token & Pairing Security
+## 🗺️ 3. Threat Model Matrix
+
+| Threat | Target Area | Severity | Mitigation Control |
+| :--- | :--- | :--- | :--- |
+| **Attacker on Public Internet** | Public REST/WebSocket | **CRITICAL** | **Port-Forwarding Prohibited:** Port `8000` is bound locally and restricted by Windows Defender Firewall. No WAN routing is exposed. |
+| **Compromised Overlay Node** | Private Network (Tailscale) | **HIGH** | **Zero-Trust Auth Enforced:** Private overlay membership does NOT bypass security. Paired token verification (`Authorization: Bearer <token>`) remains mandatory. |
+| **Paired Phone Theft** | Device Credentials | **HIGH** | Plaintext tokens are never stored locally. Access can be instantly terminated on the host laptop using `DELETE /api/v1/devices/{device_id}`, which evicts WebSocket sessions and invalidates future hashes. |
+| **Command Injection** | Local Host Terminal | **CRITICAL** | Parameters are strictly serialized into Pydantic models. Direct execution of raw CLI sub-interpreters (`python`, `powershell`, `bash`, `cmd`, etc.) is fully banned. |
+| **Confirmation Replay** | System Automation | **HIGH** | Request IDs are single-use, timed to expire in 30 seconds, and validated statefully against active device session owners. |
+| **Cross-Device Leakage** | Event Pushing | **MEDIUM** | Stateful `ConnectionManager` isolates socket routing (`send_to_device(device_id)`). Sockets do not receive other devices' transaction lifecycles. |
+
+---
+
+## 🔑 4. Token & Pairing Security
 
 ### A. Non-plaintext Storage
 *   **Plaintext Banned:** Raw issued Bearer tokens or pairing PINs are never stored in plain text files, standard SharedPreferences, logs, or server-side databases.
@@ -58,7 +76,7 @@ To prevent token exposures inside proxy history lists, reverse proxy logs, or di
 
 ---
 
-## ⚙️ 4. Device Permission Scopes
+## ⚙️ 5. Device Permission Scopes
 
 Device capabilities are strictly audited and verified against explicitly allocated scopes:
 
