@@ -152,18 +152,23 @@ def test_pairing_lockout_rate_limiting():
 
 def test_pair_blocks_tailscale_origins():
     """Verify that pairing attempts originating from Tailscale IP subnets are strictly blocked with 403."""
-    # We mock client headers to simulate incoming Tailscale connection (e.g. from 100.64.12.35)
-    # Since Starlette TestClient is synchronous local loopback, we can simulate IP address routing by passing headers or testing our is_local_lan method.
+    # Unit-tested Tailscale network classification:
     from backend.api.routes.auth import is_local_lan
     
-    # Standard Tailscale IP ranges (100.64.0.0/10)
+    # Standard Tailscale IPv4 ranges (100.64.0.0/10)
     assert is_local_lan("100.64.12.35") is False
     assert is_local_lan("100.127.255.254") is False
+
+    # Standard Tailscale IPv6 Unique Local Address ranges (fd7a:115c:a1e0::/48)
+    assert is_local_lan("fd7a:115c:a1e0::1234") is False
+    assert is_local_lan("fd7a:115c:a1e0:1a2b::5678") is False
     
-    # Standard Local LAN ranges
+    # Standard Local LAN/Loopback RFC 1918 private address ranges
     assert is_local_lan("127.0.0.1") is True
+    assert is_local_lan("::1") is True
     assert is_local_lan("192.168.1.15") is True
     assert is_local_lan("172.16.0.1") is True
+    assert is_local_lan("10.0.0.5") is True
 
 
 def test_one_phone_cannot_revoke_another():

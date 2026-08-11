@@ -63,7 +63,8 @@ class WsTicketResponse(BaseModel):
 def is_local_lan(ip: str) -> bool:
     """
     Enforce Local LAN and Loopback pairing boundaries.
-    Blocks remote pairings originating from Tailscale VPN (100.64.0.0/10) or public WAN networks.
+    Blocks remote pairings originating from both IPv4 and IPv6 Tailscale VPN adapters,
+    as well as public WAN networks.
     """
     if ip in ("127.0.0.1", "::1", "localhost", "testclient"):
         return True
@@ -71,15 +72,21 @@ def is_local_lan(ip: str) -> bool:
     try:
         ip_obj = ipaddress.ip_address(ip)
         
-        # 1. Block Tailscale network IPs (100.64.0.0 to 100.127.255.255)
+        # 1. Block Tailscale IPv4 subnet block (100.64.0.0/10)
         # Tailscale allocates addresses strictly inside the 100.64.0.0/10 CIDR block
-        tailscale_network = ipaddress.ip_network("100.64.0.0/10")
-        if ip_obj in tailscale_network:
-            logger.warning("Network boundary check: Blocked pairing attempt from Tailscale IP %s", ip)
+        tailscale_ipv4 = ipaddress.ip_network("100.64.0.0/10")
+        if ip_obj.version == 4 and ip_obj in tailscale_ipv4:
+            logger.warning("Network boundary check: Blocked pairing attempt from Tailscale IPv4 %s", ip)
             return False
 
-        # 2. Allow local loopback or private LAN subnets (Class A, B, C)
-        # e.g., 192.168.x.x, 172.16.x.x - 172.31.x.x, 10.x.x.x (excluding tailscale)
+        # 2. Block Tailscale IPv6 subnet block (fd7a:115c:a1e0::/48 Unique Local Addresses)
+        tailscale_ipv6 = ipaddress.ip_network("fd7a:115c:a1e0::/48")
+        if ip_obj.version == 6 and ip_obj in tailscale_ipv6:
+            logger.warning("Network boundary check: Blocked pairing attempt from Tailscale IPv6 %s", ip)
+            return False
+
+        # 3. Allow local loopback or standard RFC 1918 private address ranges
+        # e.g., 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8 (excluding tailscale)
         if ip_obj.is_private or ip_obj.is_loopback:
             return True
 
