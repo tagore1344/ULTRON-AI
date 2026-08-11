@@ -8,6 +8,8 @@ import 'package:ultron_mobile/core/networking/api_client.dart';
 import 'package:ultron_mobile/core/networking/websocket_service.dart';
 import 'package:ultron_mobile/core/storage/secure_storage_service.dart';
 import 'package:ultron_mobile/features/connection/connection_controller.dart';
+import 'package:ultron_mobile/features/chat/chat_controller.dart';
+import 'package:ultron_mobile/features/control/control_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +28,17 @@ void main() {
           create: (_) => ConnectionController(
             config: config,
             storage: storage,
+            apiClient: apiClient,
+            wsService: wsService,
+          ),
+        ),
+        ChangeNotifierProvider<ChatController>(
+          create: (_) => ChatController(
+            apiClient: apiClient,
+          ),
+        ),
+        ChangeNotifierProvider<ControlController>(
+          create: (_) => ControlController(
             apiClient: apiClient,
             wsService: wsService,
           ),

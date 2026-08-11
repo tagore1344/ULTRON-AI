@@ -2,6 +2,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ultron_mobile/core/models/event.dart';
 import 'package:ultron_mobile/core/models/device.dart';
+import 'package:ultron_mobile/core/models/command.dart';
+import 'package:ultron_mobile/features/chat/chat_message.dart';
 
 void main() {
   group('ULTRON Model Parsing Unit Tests', () {
@@ -44,6 +46,37 @@ void main() {
       assert(device.permissions.contains("chat"));
       assert(device.permissions.contains("system_status"));
       assert(device.revoked == false);
+    });
+
+    test('Verify ChatMessage compiles and maps correctly in local lists', () {
+      final msg = ChatMessage(
+        text: "Hello ULTRON",
+        isUser: true,
+        timestamp: DateTime.now(),
+      );
+
+      assert(msg.text == "Hello ULTRON");
+      assert(msg.isUser == true);
+    });
+
+    test('Verify CommandResult parsing and payload serialization', () {
+      final jsonPayload = {
+        "success": true,
+        "command_id": "cmd_b12fa481e592",
+        "status": "completed",
+        "result": {
+          "message": "Command completed successfully.",
+          "response": "Opening chrome"
+        }
+      };
+
+      final res = CommandResult.fromJson(jsonPayload);
+
+      assert(res.success == true);
+      assert(res.commandId == "cmd_b12fa481e592");
+      assert(res.status == "completed");
+      assert(res.message == "Command completed successfully.");
+      assert(res.responsePayload == "Opening chrome");
     });
   });
 }
