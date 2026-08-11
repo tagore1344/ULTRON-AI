@@ -34,7 +34,7 @@ class EventEnvelope(BaseModel):
 
     event: EventType = Field(..., description="The type of event.")
     event_id: str = Field(default_factory=lambda: f"evt_{uuid.uuid4().hex[:12]}", description="Unique identifier for the event.")
-    timestamp: str = Field(default_factory=lambda: datetime.datetime.utcnow().isoformat() + "Z", description="ISO 8601 UTC timestamp.")
+    timestamp: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z", description="ISO 8601 UTC timestamp.")
     device_id: Optional[str] = Field(None, description="The device ID associated with the event.")
     command_id: Optional[str] = Field(None, description="The command ID associated with the transaction.")
     request_id: Optional[str] = Field(None, description="The confirmation request ID if applicable.")

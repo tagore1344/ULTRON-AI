@@ -115,7 +115,7 @@ def create_app() -> FastAPI:
                     manager.update_session_heartbeat(websocket)
                     await manager.send_personal_message({
                         "event": "PONG",
-                        "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+                        "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
                     }, websocket)
                     
                 # 4. Interactive Confirmation Response handler

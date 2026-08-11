@@ -35,7 +35,7 @@ async def post_chat(
             success=True,
             response=response_text,
             conversation_id=conv_id,
-            timestamp=datetime.datetime.utcnow().isoformat() + "Z"
+            timestamp=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
         )
     except Exception as e:
         logger.error("Chat routing transaction failed: %s", e, exc_info=True)

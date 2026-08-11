@@ -32,7 +32,7 @@ class ConnectionManager:
         raw_ticket = token_service.generate_token()
         ticket_hash = token_service.hash_string(raw_ticket)
 
-        expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=15)
+        expires_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(seconds=15)
         self.active_tickets[ticket_hash] = {
             "device_id": device_id,
             "expires_at": expires_at
@@ -50,7 +50,7 @@ class ConnectionManager:
         ticket_data = self.active_tickets.pop(ticket_hash)  # Consume instantly
         expires_at = ticket_data["expires_at"]
 
-        if datetime.datetime.utcnow() > expires_at:
+        if datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) > expires_at:
             logger.warning("Attempted connect with expired WS ticket.")
             return None
 
@@ -95,7 +95,7 @@ class ConnectionManager:
         # 4. Successful handshake, register session
         await websocket.accept()
         session_id = f"sess_{uuid.uuid4().hex[:12]}"
-        now_str = datetime.datetime.utcnow().isoformat() + "Z"
+        now_str = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
 
         self.active_sessions[session_id] = {
             "device_id": device_id,
@@ -143,7 +143,7 @@ class ConnectionManager:
         """Throttle-updates the last seen timestamps on active web sockets."""
         for sess_id, meta in self.active_sessions.items():
             if meta["connection"] == websocket:
-                now_str = datetime.datetime.utcnow().isoformat() + "Z"
+                now_str = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
                 meta["last_seen"] = now_str
                 break
 

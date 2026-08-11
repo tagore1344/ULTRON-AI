@@ -113,7 +113,7 @@ class DeviceRepository:
         try:
             cursor = conn.cursor()
             cursor.execute("UPDATE devices SET revoked = 1, updated_at = ? WHERE device_id = ?", (
-                datetime.datetime.utcnow().isoformat() + "Z",
+                datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z",
                 device_id
             ))
             conn.commit()
@@ -130,7 +130,7 @@ class DeviceRepository:
         try:
             cursor = conn.cursor()
             cursor.execute("UPDATE devices SET last_seen = ? WHERE device_id = ?", (
-                datetime.datetime.utcnow().isoformat() + "Z",
+                datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z",
                 device_id
             ))
             conn.commit()
@@ -222,7 +222,7 @@ class DeviceRepository:
     def record_failed_attempt(self, ip_address: str) -> int:
         """Logs a failed brute pairing attempt, locked out for 60 seconds after 5 failed attempts."""
         conn = get_db_connection()
-        now_str = datetime.datetime.utcnow().isoformat() + "Z"
+        now_str = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
         try:
             cursor = conn.cursor()
             status = self.get_lockout_status(ip_address)
@@ -231,7 +231,7 @@ class DeviceRepository:
                 attempts = status["failed_attempts"] + 1
                 locked_until = None
                 if attempts >= 5:
-                    locked_until = (datetime.datetime.utcnow() + datetime.timedelta(seconds=60)).isoformat() + "Z"
+                    locked_until = (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(seconds=60)).isoformat() + "Z"
                     logger.warning("Brute force protection triggered. Lockout applied for IP %s until %s", ip_address, locked_until)
                 
                 cursor.execute("""

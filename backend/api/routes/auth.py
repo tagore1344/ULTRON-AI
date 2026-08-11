@@ -122,7 +122,7 @@ async def create_pairing_session(request: Request) -> PairingSessionResponse:
     raw_code = token_service.generate_pairing_code()
     code_hash = token_service.hash_string(raw_code)
 
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     expires_at = (now + datetime.timedelta(seconds=180)).isoformat() + "Z"
 
     session_data = {
@@ -166,7 +166,7 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
     lockout_status = device_repo.get_lockout_status(client_ip)
     if lockout_status and lockout_status.get("locked_until"):
         locked_until_dt = datetime.datetime.fromisoformat(lockout_status["locked_until"].replace("Z", ""))
-        if datetime.datetime.utcnow() < locked_until_dt:
+        if datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) < locked_until_dt:
             logger.warning("Blocked pair request from locked out IP: %s", client_ip)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -188,7 +188,7 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
 
     # Validate expiration
     expires_dt = datetime.datetime.fromisoformat(session["expires_at"].replace("Z", ""))
-    if datetime.datetime.utcnow() > expires_dt:
+    if datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) > expires_dt:
         device_repo.record_failed_attempt(client_ip)
         device_repo.mark_pairing_session_used(session["session_id"])  # Invalidate expired
         logger.warning("Pairing attempt with expired code from IP: %s", client_ip)
@@ -206,7 +206,7 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
     raw_token = token_service.generate_token()
     token_hash = token_service.hash_string(raw_token)
 
-    now_str = datetime.datetime.utcnow().isoformat() + "Z"
+    now_str = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
     
     # Standard authorized client scopes as specified: chat, system_status, safe_commands
     standard_permissions = ["chat", "system_status", "safe_commands"]

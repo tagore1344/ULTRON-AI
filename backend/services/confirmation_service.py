@@ -41,7 +41,7 @@ class ConfirmationService:
         request_id = f"req_{uuid.uuid4().hex[:12]}"
         event = asyncio.Event()
 
-        expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout_seconds)
+        expires_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(seconds=timeout_seconds)
 
         self.pending_requests[request_id] = {
             "command_id": command_id,
@@ -64,7 +64,7 @@ class ConfirmationService:
             "request_id": request_id,
             "command_id": command_id,
             "device_id": device_id,
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z",
             "data": {
                 "command": command_name,
                 "description": human_description,
@@ -104,7 +104,7 @@ class ConfirmationService:
                 "request_id": request_id,
                 "command_id": command_id,
                 "device_id": device_id,
-                "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z",
                 "data": {
                     "message": "Confirmation window has expired."
                 }
@@ -141,7 +141,7 @@ class ConfirmationService:
             logger.warning("Validation rejected: Transaction is no longer pending: %s", request_id)
             return False
 
-        if datetime.datetime.utcnow() > req_data["expires_at"]:
+        if datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) > req_data["expires_at"]:
             logger.warning("Validation rejected: Transaction expired: %s", request_id)
             req_data["state"] = ConfirmationState.EXPIRED
             req_data["event"].set()

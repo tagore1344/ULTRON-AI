@@ -49,13 +49,7 @@ class AdvancedSpeechEngine:
             self._find_microphone()
 
         self.model = None
-        if WhisperModel is not None:
-            try:
-                self.model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
-            except Exception:
-                self.model = None
-
-        print("[SPEECH] ✅ Faster-Whisper Voice Engine Active!" if self.model is not None else "[SPEECH] Fallback voice engine active (local speech features disabled).")
+        print("[SPEECH] ✅ Faster-Whisper Voice Engine Active (Lazy Loading enabled)!" if WhisperModel is not None else "[SPEECH] Fallback voice engine active (local speech features disabled).")
 
     def _find_microphone(self):
         for i in range(self.audio.get_device_count()):
@@ -90,7 +84,18 @@ class AdvancedSpeechEngine:
         Listens to microphone data and decodes via Faster-Whisper
         Ensures a clean response on the first command.
         """
-        if self.audio is None or self.model is None:
+        if self.audio is None:
+            return ""
+
+        if self.model is None and WhisperModel is not None:
+            try:
+                print("[SPEECH] Lazily loading Whisper model 'tiny.en'...")
+                self.model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
+            except Exception as e:
+                print(f"[SPEECH ERROR] Failed to lazily load Whisper model: {e}")
+                self.model = None
+
+        if self.model is None:
             return ""
 
         try:
