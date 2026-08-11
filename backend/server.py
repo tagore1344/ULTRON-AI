@@ -14,6 +14,7 @@ from backend.api.routes.system import router as system_router
 from backend.api.routes.commands import router as command_router
 from backend.api.routes.auth import router as auth_router
 from backend.api.websocket.connection_manager import manager
+from backend.services.confirmation_service import confirmation_service
 
 # Configure standard structured logging
 logger = configure_logging()
@@ -77,17 +78,26 @@ def create_app() -> FastAPI:
             }
         )
 
-    # 6. Base WebSocket endpoint as defined in ARCHITECTURE.md
+    # 6. Secure Authenticated WebSocket endpoint as defined in ARCHITECTURE.md
     @app.websocket("/ws")
     @app.websocket("/api/v1/ws")
     async def websocket_endpoint(websocket: WebSocket):
-        """Stateful WebSocket entrypoint for remote clients."""
-        await manager.connect(websocket)
-        
-        # Connection established handshake packet
+        """Stateful secure WebSocket entrypoint for authorized remote clients."""
+        # 1. Authenticate during handshake (uses Bearer headers or short-lived Tickets)
+        meta = await manager.authenticate_and_connect(websocket)
+        if not meta:
+            return  # Handshake rejected/closed statefully
+
+        session_id = meta["session_id"]
+        device_id = meta["device_id"]
+
+        # 2. Connection established handshake confirmation packet
         handshake_payload = {
             "event": "CONNECTION_ESTABLISHED",
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "session_id": session_id,
+            "device_id": device_id,
+            "timestamp": meta["connected_at"],
+            "server_version": settings.app_version,
             "message": "Connection to ULTRON-AI gateway established."
         }
         await manager.send_personal_message(handshake_payload, websocket)
@@ -96,21 +106,46 @@ def create_app() -> FastAPI:
             while True:
                 # Keep socket alive and receive JSON payloads
                 data = await websocket.receive_json()
-                logger.info("Received WebSocket frame payload: %s", data)
+                logger.info("Received WebSocket frame payload from %s: %s", device_id, data)
                 
-                # Simple ping-echo handshake response for testing
-                if data.get("event") == "PING":
+                event_type = data.get("event")
+                
+                # 3. Heartbeat PING-PONG handler
+                if event_type == "PING":
+                    manager.update_session_heartbeat(websocket)
                     await manager.send_personal_message({
                         "event": "PONG",
                         "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
                     }, websocket)
                     
+                # 4. Interactive Confirmation Response handler
+                elif event_type == "CONFIRMATION_RESPONSE":
+                    manager.update_session_heartbeat(websocket)
+                    req_id = data.get("request_id")
+                    cmd_id = data.get("command_id")
+                    decision = data.get("decision")
+                    
+                    # Submit decision securely to unlock the pending execution path
+                    success = confirmation_service.submit_decision(
+                        request_id=req_id,
+                        command_id=cmd_id,
+                        device_id=device_id,
+                        decision=decision
+                    )
+                    
+                    if success:
+                        logger.info("Decision '%s' accepted for request %s", decision, req_id)
+                    else:
+                        logger.warning("Rejected invalid confirmation response packet for request %s", req_id)
+                    
         except WebSocketDisconnect:
             manager.disconnect(websocket)
+            confirmation_service.cancel_pending_device_requests(device_id)
             logger.info("WebSocket client disconnected gracefully.")
         except Exception as e:
             manager.disconnect(websocket)
-            logger.error("WebSocket connection disrupted: %s", e)
+            confirmation_service.cancel_pending_device_requests(device_id)
+            logger.error("WebSocket connection disrupted statefully: %s", e)
 
     return app
 

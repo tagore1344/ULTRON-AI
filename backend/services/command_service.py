@@ -5,6 +5,8 @@ import datetime
 from typing import Dict, Any, Tuple
 
 from backend.schemas.command import SecurityLevel
+from backend.services.confirmation_service import confirmation_service
+from backend.database.device_repository import device_repo
 from core.tools.tool_registry import ToolRegistry
 
 logger = logging.getLogger("ultron-api")
@@ -72,10 +74,10 @@ class CommandService:
 
         return "chat", ""
 
-    async def execute_command(self, command: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_command(self, command: str, parameters: Dict[str, Any], device_id: str, timeout_seconds: float = 30.0) -> Dict[str, Any]:
         """Orchestrates the formal validation, classification, and execution lifecycle of commands."""
         command_id = f"cmd_{uuid.uuid4().hex[:12]}"
-        logger.info("COMMAND_RECEIVED %s - Target: %s", command_id, command)
+        logger.info("COMMAND_RECEIVED %s - Target: %s, Device: %s", command_id, command, device_id)
 
         cmd = command.lower().strip()
 
@@ -98,9 +100,9 @@ class CommandService:
         security_level = self.allowlist_categories[cmd]
         logger.info("COMMAND_CLASSIFIED %s - Security Level: %s", command_id, security_level.value)
 
-        # 3. High-Risk Guardrails (Phase 2 limitation)
+        # 3. High-Risk Guardrails
         if security_level == SecurityLevel.HIGH_RISK:
-            logger.warning("COMMAND_REJECTED %s - High-risk execution blocked in Phase 2 gateway", command_id)
+            logger.warning("COMMAND_REJECTED %s - High-risk execution blocked in Phase 4 gateway", command_id)
             return {
                 "success": False,
                 "command_id": command_id,
@@ -111,10 +113,46 @@ class CommandService:
                 }
             }
 
-        # 4. Confirmation required warnings
+        # 4. Confirmation Required Flow
         if security_level == SecurityLevel.CONFIRMATION_REQUIRED:
-            # During development, we let it pass but flag it
-            logger.info("COMMAND_AUTHORIZED %s - CONFIRMATION_REQUIRED execution bypassed in local development mode", command_id)
+            logger.info("COMMAND_PENDING_CONFIRMATION %s - Awaiting client response...", command_id)
+            
+            # Non-blocking async wait for mobile approval
+            approved, reason = await confirmation_service.create_and_await_confirmation(
+                command_id=command_id,
+                device_id=device_id,
+                command_name=cmd,
+                parameters=parameters,
+                timeout_seconds=timeout_seconds
+            )
+            
+            if not approved:
+                logger.warning("COMMAND_REJECTED %s - Confirmation failed: %s", command_id, reason)
+                return {
+                    "success": False,
+                    "command_id": command_id,
+                    "status": "rejected",
+                    "error": {
+                        "code": "CONFIRMATION_FAILED",
+                        "message": f"Command confirmation was not approved. Reason: {reason}."
+                    }
+                }
+                
+            # 5. RE-VALIDATION BEFORE EXECUTION (Critical Safety Requirement)
+            device_data = device_repo.get_device_by_id(device_id)
+            if not device_data or device_data.get("revoked", False):
+                logger.error("COMMAND_REJECTED %s - Device was revoked during confirmation wait window", command_id)
+                return {
+                    "success": False,
+                    "command_id": command_id,
+                    "status": "rejected",
+                    "error": {
+                        "code": "DEVICE_REVOKED",
+                        "message": "Access denied. Device revoked during confirmation window."
+                    }
+                }
+            
+            logger.info("COMMAND_AUTHORIZED %s - Post-confirmation validation checks succeeded.", command_id)
         else:
             logger.info("COMMAND_AUTHORIZED %s", command_id)
 
@@ -130,7 +168,7 @@ class CommandService:
                 }
             }
 
-        # 5. Intent Translation and Execution
+        # 6. Intent Translation and Execution
         intent, target = self._map_to_intent_data(cmd, parameters)
         logger.info("COMMAND_STARTED %s - Routing intent: %s (target: %s)", command_id, intent, target)
 

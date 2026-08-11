@@ -27,7 +27,8 @@ async def post_command(
         logger.info("Command '%s' submitted by paired device: %s (%s)", payload.command, device.device_id, device.device_name)
         execution_result = await command_service.execute_command(
             payload.command,
-            payload.parameters
+            payload.parameters,
+            device.device_id
         )
         
         # If the service explicitly rejected or failed the command, return mapped HTTP status codes directly as JSONResponses
@@ -37,8 +38,10 @@ async def post_command(
             
             if err_code == "COMMAND_NOT_ALLOWED":
                 return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=execution_result)
-            elif err_code == "HIGH_RISK_COMMAND_REQUIRES_AUTHORIZATION":
+            elif err_code in ("HIGH_RISK_COMMAND_REQUIRES_AUTHORIZATION", "DEVICE_REVOKED"):
                 return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content=execution_result)
+            elif err_code == "CONFIRMATION_FAILED":
+                return JSONResponse(status_code=status.HTTP_412_PRECONDITION_FAILED, content=execution_result)
             else:
                 return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=execution_result)
 

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from backend.database.device_repository import device_repo
 from backend.security.token_service import token_service
 from backend.security.authentication import get_current_device, AuthenticatedDevice
+from backend.api.websocket.connection_manager import manager
 
 logger = logging.getLogger("ultron-api")
 router = APIRouter()
@@ -46,6 +47,12 @@ class PairResponse(BaseModel):
     device: DeviceModel
     access_token: str
     token_type: str = "bearer"
+
+
+class WsTicketResponse(BaseModel):
+    success: bool
+    ticket: str
+    expires_in: int = 15
 
 
 # ==============================================================================
@@ -186,6 +193,25 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
     )
 
 
+@router.post(
+    "/auth/ws-ticket",
+    response_model=WsTicketResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate Short-Lived WS Handshake Ticket",
+    description="Returns a secure, single-use, 15-second WebSocket connection token to prevent access-token leakage in URL paths. Requires Bearer Authentication."
+)
+async def generate_ws_ticket(
+    device: AuthenticatedDevice = Depends(get_current_device)
+) -> WsTicketResponse:
+    # Generates secure random single-use ticket mapped to this authenticated device
+    ticket = manager.create_ws_ticket(device.device_id)
+    return WsTicketResponse(
+        success=True,
+        ticket=ticket,
+        expires_in=15
+    )
+
+
 @router.get(
     "/devices",
     response_model=List[DeviceModel],
@@ -233,11 +259,15 @@ async def revoke_device(
             detail=f"Device matching ID '{device_id}' was not found."
         )
 
-    # Restrict revocation controls to prevent rogue permission escalations
+    # 1. Mark device revoked in SQLite registry
     device_repo.revoke_device(device_id)
     logger.warning("Revoked paired client token successfully: %s", device_id)
+
+    # 2. Instantly evict all active stateful WebSocket sessions belonging to the revoked device
+    await manager.evict_device_sessions(device_id)
     
     return {
         "success": True,
-        "message": f"Device matching ID '{device_id}' has been statefully revoked."
+        "message": f"Device matching ID '{device_id}' has been statefully revoked and all active WS sessions evicted."
     }
+    

@@ -9,6 +9,24 @@ from backend.server import app
 client = TestClient(app, raise_server_exceptions=False)
 
 
+@pytest.fixture(scope="module")
+def ws_authenticated_ticket():
+    """Helper fixture to pair a device and retrieve a valid WebSocket handshake ticket."""
+    session_response = client.post("/api/v1/auth/pairing-session")
+    pairing_pin = session_response.json()["pairing_code"]
+    
+    pair_resp = client.post("/api/v1/auth/pair", json={
+        "pairing_code": pairing_pin,
+        "device_name": "Health WS Test Device",
+        "device_type": "android"
+    })
+    token = pair_resp.json()["access_token"]
+    auth_headers = {"Authorization": f"Bearer {token}"}
+    
+    ticket_resp = client.post("/api/v1/auth/ws-ticket", headers=auth_headers)
+    return ticket_resp.json()["ticket"]
+
+
 def test_1_server_imports_successfully():
     """Verify that the FastAPI application module compiles and imports successfully."""
     assert app is not None
@@ -55,18 +73,30 @@ def test_5_unhandled_error_returns_clean_500():
     assert "message" in data["error"]
 
 
-def test_6_websocket_handshake():
-    """Verify that a stateful client can connect to the WS endpoint and receive CONNECTION_ESTABLISHED."""
-    with client.websocket_connect("/ws") as websocket:
+def test_6_websocket_handshake(ws_authenticated_ticket):
+    """Verify that an authorized client can connect to the WS endpoint and receive CONNECTION_ESTABLISHED."""
+    with client.websocket_connect(f"/ws?ticket={ws_authenticated_ticket}") as websocket:
         data = websocket.receive_json()
         assert data["event"] == "CONNECTION_ESTABLISHED"
         assert "timestamp" in data
         assert "message" in data
 
 
-def test_7_websocket_ping_pong_echo():
+def test_7_websocket_ping_pong_echo(ws_authenticated_ticket):
     """Verify that active WebSocket clients can ping-pong exchange messages cleanly."""
-    with client.websocket_connect("/api/v1/ws") as websocket:
+    # We must generate a fresh single-use ticket since tickets are single-use
+    session_response = client.post("/api/v1/auth/pairing-session")
+    pairing_pin = session_response.json()["pairing_code"]
+    pair_resp = client.post("/api/v1/auth/pair", json={
+        "pairing_code": pairing_pin,
+        "device_name": "Health WS Test Device 2",
+        "device_type": "android"
+    })
+    token = pair_resp.json()["access_token"]
+    ticket_resp = client.post("/api/v1/auth/ws-ticket", headers={"Authorization": f"Bearer {token}"})
+    fresh_ticket = ticket_resp.json()["ticket"]
+
+    with client.websocket_connect(f"/api/v1/ws?ticket={fresh_ticket}") as websocket:
         # Clear handshake packet
         _ = websocket.receive_json()
         
@@ -79,9 +109,20 @@ def test_7_websocket_ping_pong_echo():
         assert "timestamp" in response
 
 
-def test_8_websocket_disconnect_is_graceful():
+def test_8_websocket_disconnect_is_graceful(ws_authenticated_ticket):
     """Verify that client disconnection is handled statefully and does not cause server disruption."""
-    with client.websocket_connect("/ws") as websocket:
+    session_response = client.post("/api/v1/auth/pairing-session")
+    pairing_pin = session_response.json()["pairing_code"]
+    pair_resp = client.post("/api/v1/auth/pair", json={
+        "pairing_code": pairing_pin,
+        "device_name": "Health WS Test Device 3",
+        "device_type": "android"
+    })
+    token = pair_resp.json()["access_token"]
+    ticket_resp = client.post("/api/v1/auth/ws-ticket", headers={"Authorization": f"Bearer {token}"})
+    fresh_ticket = ticket_resp.json()["ticket"]
+
+    with client.websocket_connect(f"/ws?ticket={fresh_ticket}") as websocket:
         # Receive handshake
         data = websocket.receive_json()
         assert data["event"] == "CONNECTION_ESTABLISHED"
