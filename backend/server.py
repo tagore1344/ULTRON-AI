@@ -8,6 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import settings
 from backend.logging_config import configure_logging
 from backend.api.routes.health import router as health_router
+from backend.api.routes.chat import router as chat_router
+from backend.api.routes.system import router as system_router
+from backend.api.routes.commands import router as command_router
 from backend.api.websocket.connection_manager import manager
 
 # Configure standard structured logging
@@ -42,6 +45,9 @@ def create_app() -> FastAPI:
 
     # 2. Register REST router namespaces under /api/v1
     app.include_router(health_router, prefix="/api/v1")
+    app.include_router(chat_router, prefix="/api/v1")
+    app.include_router(system_router, prefix="/api/v1")
+    app.include_router(command_router, prefix="/api/v1")
 
     # 3. Base Optional Root Endpoint
     @app.get("/", summary="Root Endpoint")
@@ -77,7 +83,7 @@ def create_app() -> FastAPI:
         handshake_payload = {
             "event": "CONNECTION_ESTABLISHED",
             "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-            "message": "Connection to ULTRON-AI system authorized successfully."
+            "message": "Connection to ULTRON-AI gateway established."
         }
         await manager.send_personal_message(handshake_payload, websocket)
 
