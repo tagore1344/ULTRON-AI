@@ -71,7 +71,7 @@ def is_local_lan(ip: str) -> bool:
 
     try:
         ip_obj = ipaddress.ip_address(ip)
-        
+
         # 1. Block Tailscale IPv4 subnet block (100.64.0.0/10)
         # Tailscale allocates addresses strictly inside the 100.64.0.0/10 CIDR block
         tailscale_ipv4 = ipaddress.ip_network("100.64.0.0/10")
@@ -207,7 +207,7 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
     token_hash = token_service.hash_string(raw_token)
 
     now_str = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
-    
+
     # Standard authorized client scopes as specified: chat, system_status, safe_commands
     standard_permissions = ["chat", "system_status", "safe_commands"]
 
@@ -274,7 +274,7 @@ async def list_devices(
     # Audits are limited to authenticated, non-revoked clients
     logger.info("Device list queried by client: %s", device.device_id)
     raw_list = device_repo.list_all_devices()
-    
+
     return [
         DeviceModel(
             device_id=d["device_id"],
@@ -300,7 +300,7 @@ async def revoke_device(
     device: AuthenticatedDevice = Depends(get_current_device)
 ):
     logger.info("Revoke device request submitted by: %s (Target: %s)", device.device_id, device_id)
-    
+
     # 1. Enforce Device-Level Authorization Check (Finding 1 Fix)
     # A device is strictly restricted to self-revocation to prevent rogue revocation attacks
     if device_id != device.device_id:
@@ -323,7 +323,7 @@ async def revoke_device(
 
     # 3. Instantly evict all active stateful WebSocket sessions belonging to the revoked device
     await manager.evict_device_sessions(device_id)
-    
+
     return {
         "success": True,
         "message": f"Device matching ID '{device_id}' has been statefully revoked and all active WS sessions evicted."

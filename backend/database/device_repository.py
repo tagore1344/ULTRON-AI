@@ -226,14 +226,14 @@ class DeviceRepository:
         try:
             cursor = conn.cursor()
             status = self.get_lockout_status(ip_address)
-            
+
             if status:
                 attempts = status["failed_attempts"] + 1
                 locked_until = None
                 if attempts >= 5:
                     locked_until = (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(seconds=60)).isoformat() + "Z"
                     logger.warning("Brute force protection triggered. Lockout applied for IP %s until %s", ip_address, locked_until)
-                
+
                 cursor.execute("""
                     UPDATE brute_force_tracker
                     SET failed_attempts = ?, last_attempt_at = ?, locked_until = ?
@@ -245,7 +245,7 @@ class DeviceRepository:
                     INSERT INTO brute_force_tracker (ip_address, failed_attempts, last_attempt_at, locked_until)
                     VALUES (?, ?, ?, NULL)
                 """, (ip_address, attempts, now_str))
-                
+
             conn.commit()
             return attempts
         except sqlite3.Error as e:

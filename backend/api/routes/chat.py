@@ -25,12 +25,12 @@ async def post_chat(
     device: AuthenticatedDevice = Depends(require_chat_permission)
 ) -> ChatResponse:
     conv_id = payload.conversation_id or f"session_{uuid.uuid4().hex[:12]}"
-    
+
     try:
         # Audit conversation request linked back to device
         logger.info("Chat requested by paired device %s (%s)", device.device_id, device.device_name)
         response_text = ultron_service.ask_brain(payload.message)
-        
+
         return ChatResponse(
             success=True,
             response=response_text,

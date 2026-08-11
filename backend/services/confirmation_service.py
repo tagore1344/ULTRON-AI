@@ -57,7 +57,7 @@ class ConfirmationService:
         # 1. Dispatch CONFIRMATION_REQUEST event frame to paired client WebSockets
         # Safe description hides internal parameter structures (such as process paths)
         human_description = f"Launch {parameters.get('application', command_name)}" if command_name == "launch_application" else f"Run {command_name}"
-        
+
         request_packet = {
             "event": EventType.CONFIRMATION_REQUEST,
             "event_id": f"evt_{uuid.uuid4().hex[:12]}",
@@ -78,7 +78,7 @@ class ConfirmationService:
         # 2. Block asynchronously utilizing asyncio.wait_for (completely non-blocking to other workers)
         try:
             await asyncio.wait_for(event.wait(), timeout=timeout_seconds)
-            
+
             # Retrieve decision written by WebSocket callback
             req_data = self.pending_requests.get(request_id)
             if not req_data:
@@ -96,7 +96,7 @@ class ConfirmationService:
 
         except asyncio.TimeoutError:
             logger.warning("Confirmation transaction timed out: %s after %ds", request_id, int(timeout_seconds))
-            
+
             # Notify client WebSocket of expiration
             expired_packet = {
                 "event": EventType.CONFIRMATION_EXPIRED,
@@ -110,7 +110,7 @@ class ConfirmationService:
                 }
             }
             await manager.send_to_device(device_id, expired_packet)
-            
+
             self._cleanup_request(request_id)
             return False, "Expired"
 
@@ -123,7 +123,7 @@ class ConfirmationService:
     ) -> bool:
         """Validates incoming client responses statefully, waking up the pending async execution path on match."""
         req_data = self.pending_requests.get(request_id)
-        
+
         # 1. Deep Validation Layer
         if not req_data:
             logger.warning("Validation rejected: Unknown request_id: %s", request_id)
@@ -154,7 +154,7 @@ class ConfirmationService:
         # 2. Replay Protection: Single-use write lock
         req_data["decision"] = decision
         req_data["state"] = ConfirmationState.APPROVED if decision == "approved" else ConfirmationState.REJECTED
-        
+
         # 3. Wake up blocking async coroutine path
         req_data["event"].set()
         return True

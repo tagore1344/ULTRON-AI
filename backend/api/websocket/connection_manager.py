@@ -37,7 +37,7 @@ class ConnectionManager:
             "device_id": device_id,
             "expires_at": expires_at
         }
-        
+
         logger.info("Generated 15-second WS ticket for device: %s", device_id)
         return raw_ticket
 
@@ -107,7 +107,7 @@ class ConnectionManager:
         # Update last seen in SQLite safely
         device_repo.update_last_seen(device_id)
         logger.info("Stateful WS connection established. Session: %s, Device: %s", session_id, device_id)
-        
+
         return {
             "session_id": session_id,
             "device_id": device_id,
