@@ -7,3 +7,5 @@ vosk-model/
 face_model.pkl
 backend/data/*.db
 backend/data/*.db-journal
+voice_profile.npy
+active_release.json

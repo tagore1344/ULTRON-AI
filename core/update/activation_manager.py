@@ -19,7 +19,7 @@ class ActivationManager:
             "manifest_hash": manifest_hash,
             "artifact_sha256": artifact_sha256,
             "source_commit": source_commit,
-            "creation_timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+            "creation_timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
         }
 
         # Save and swap the active release pointer atomically

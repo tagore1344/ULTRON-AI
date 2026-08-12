@@ -131,7 +131,7 @@ class UpdateManager:
 
     def _record_history(self, old: dict, manifest: dict, risk: UpdateRiskClass, status: str, rollback_reason: str):
         self.history.append({
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z",
             "old_version": old["application_version"],
             "new_version": manifest.get("version", "0.0.0"),
             "commit": manifest.get("commit", ""),
