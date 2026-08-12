@@ -123,6 +123,47 @@ class ToolRegistry:
                 return self.system.get_system_info()
             return "System info tool unavailable."
 
+        if intent == "agent.get_status":
+            try:
+                from core.agent.agent_runtime import agent_runtime
+                return str(agent_runtime.get_status())
+            except Exception as e:
+                return f"Agent service failure: {e}"
+
+        if intent == "agent.get_opinion":
+            try:
+                from core.agent.agent_runtime import agent_runtime
+                opinion = agent_runtime.get_opinion()
+                if opinion:
+                    return str(opinion.to_dict())
+                return "No opinion has been formulated yet."
+            except Exception as e:
+                return f"Agent service failure: {e}"
+
+        if intent == "agent.get_self_evaluation":
+            try:
+                from core.agent.agent_runtime import agent_runtime
+                evaluation = agent_runtime.get_self_evaluation()
+                if evaluation:
+                    return str(evaluation)
+                return "No self-evaluation has been recorded yet."
+            except Exception as e:
+                return f"Agent service failure: {e}"
+
+        if intent == "agent.cancel_goal":
+            try:
+                from core.agent.goal_manager import goal_manager
+                return str(goal_manager.cancel_goal())
+            except Exception as e:
+                return f"Agent service failure: {e}"
+
+        if intent == "agent.set_autonomy":
+            try:
+                from core.agent.policy_engine import policy_engine
+                level = int(target) if str(target).isdigit() else 3
+                return str(policy_engine.set_autonomy(level))
+            except Exception as e:
+                return f"Agent service failure: {e}"
         if intent == "system.update_check" or intent == "system.update_status":
             try:
                 from core.update.update_manager import update_manager
