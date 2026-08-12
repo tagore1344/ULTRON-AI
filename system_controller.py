@@ -36,10 +36,17 @@ class SystemController:
         if VOLUME_OK:
             try:
                 devices = AudioUtilities.GetSpeakers()
-                interface = devices.Activate(
-                    IAudioEndpointVolume._iid_, CLSCTX_ALL, None
-                )
-                self.volume_interface = interface.QueryInterface(IAudioEndpointVolume)
+                if hasattr(devices, "EndpointVolume"):
+                    self.volume_interface = devices.EndpointVolume
+                else:
+                    interface = devices.Activate(
+                        IAudioEndpointVolume._iid_, CLSCTX_ALL, None
+                    )
+                    try:
+                        self.volume_interface = interface.QueryInterface(IAudioEndpointVolume)
+                    except AttributeError:
+                        from ctypes import cast, POINTER
+                        self.volume_interface = cast(interface, POINTER(IAudioEndpointVolume))
                 print("[SYSTEM] Volume control ready")
             except Exception as e:
                 print(f"[SYSTEM] Volume control error: {e}")

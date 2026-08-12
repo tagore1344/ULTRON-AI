@@ -3,7 +3,7 @@ import os
 try:
     from dotenv import load_dotenv
 except Exception:
-    def load_dotenv():
+    def load_dotenv(*args, **kwargs):
         return False
 
 try:
@@ -11,23 +11,64 @@ try:
 except Exception:
     genai = None
 
-load_dotenv()
+_model = None
+_initialized = False
 
-model = None
-if genai is not None:
+
+def _get_model():
+    """Lazily configure genai and initialize the model on first use to prevent import race conditions."""
+    global _model, _initialized
+    if _initialized:
+        return _model
+
+    _initialized = True
+
+    if genai is None:
+        return None
+
+    # Resolve absolute path to root .env file to ensure reliable loading across execution contexts
     try:
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(os.path.dirname(current_dir))
+        env_path = os.path.join(root_dir, ".env")
+        load_dotenv(env_path)
     except Exception:
-        model = None
+        load_dotenv()
+
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        genai.configure(api_key=api_key)
+        _model = genai.GenerativeModel("gemini-2.5-flash")
+        return _model
+    except Exception:
+        return None
 
 
 def ask_gemini(prompt: str) -> str:
-    if model is None:
-        return "Gemini Error: API dependency is unavailable in this environment."
+    current_model = _get_model()
+
+    if current_model is None:
+        # Determine the root cause to return a clear, precise configuration error
+        try:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            root_dir = os.path.dirname(os.path.dirname(current_dir))
+            env_path = os.path.join(root_dir, ".env")
+            load_dotenv(env_path)
+        except Exception:
+            load_dotenv()
+
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            return "Gemini Error: GEMINI_API_KEY is not configured in your .env file."
+        if genai is None:
+            return "Gemini Error: google-generativeai package is not installed."
+        return "Gemini Error: Failed to configure Gemini API client."
 
     try:
-        response = model.generate_content(prompt)
+        response = current_model.generate_content(prompt)
         return response.text
 
     except Exception as e:

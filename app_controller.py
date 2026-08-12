@@ -340,7 +340,9 @@ class AppController:
 
     # ── Sanitization ────────────────────────────
     def _sanitize_app_name(self, app_name):
-        """Strip anything outside [a-zA-Z0-9 _.-] to prevent shell injection."""
+        """Strip anything outside [a-zA-Z0-9 _.-] to prevent shell injection, blocking path traversals."""
+        if ".." in app_name or "/" in app_name or "\\" in app_name or ":" in app_name:
+            return ""
         return re.sub(r'[^a-zA-Z0-9 _.-]', '', app_name)
 
     # ── Main Open Method ────────────────────────
@@ -355,6 +357,16 @@ class AppController:
             if app_name.endswith(" " + word):
                 app_name = app_name[:-len(word)-1].strip()
 
+        # Strict blocklist of dangerous interpreters and absolute/relative path components
+        forbidden_apps = {"cmd", "cmd.exe", "powershell", "powershell.exe", "python", "python.exe", "bash", "sh", "regedit", "regedit.exe"}
+        if app_name in forbidden_apps or any(f in app_name for f in ("cmd.exe", "powershell.exe", "python.exe", "regedit.exe")):
+            print(f"[SECURITY] Blocked execution of forbidden interpreter payload: '{app_name}'")
+            return False
+
+        if ".." in app_name or "/" in app_name or "\\" in app_name or ":" in app_name:
+            print(f"[SECURITY] Blocked execution of path traversal / absolute path: '{app_name}'")
+            return False
+
         print(f"[APPS] Opening: '{app_name}'")
 
         # ── 1. Windows built-in commands ────────
@@ -364,12 +376,15 @@ class AppController:
                     try:
                         os.startfile(cmd)
                     except OSError:
-                        subprocess.Popen([cmd])
+                        try:
+                            subprocess.Popen([cmd])
+                        except OSError:
+                            pass
                 else:
                     try:
                         subprocess.Popen([cmd])
                     except OSError:
-                        subprocess.Popen([cmd])
+                        pass
                 self.speech.speak(f"Opening {key}")
                 return True
 
@@ -419,32 +434,7 @@ class AppController:
             self.speech.speak(f"Opening {app_name}")
             return True
 
-        # ── 7. Windows shell / start command ─────
-        safe_name = self._sanitize_app_name(app_name)
-        if safe_name:
-            try:
-                result = subprocess.run(
-                    f'start "" "{safe_name}"',
-                    shell=True,
-                    capture_output=True,
-                    timeout=3
-                )
-                if result.returncode == 0:
-                    self.speech.speak(f"Opening {safe_name}")
-                    return True
-            except (subprocess.SubprocessError, OSError):
-                pass
-
-        # ── 8. Try as executable directly ────────
-        if safe_name:
-            try:
-                subprocess.Popen([f"{safe_name}.exe"])
-                self.speech.speak(f"Opening {safe_name}")
-                return True
-            except OSError:
-                pass
-
-        # ── 9. Search Start Menu ─────────────────
+        # ── 7. Search Start Menu ─────────────────
         self._search_start_menu(app_name)
         return False
 
