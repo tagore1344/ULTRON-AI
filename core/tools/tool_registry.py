@@ -150,6 +150,35 @@ class ToolRegistry:
             except Exception as e:
                 return f"Agent service failure: {e}"
 
+        if intent == "agent.get_self_model":
+            try:
+                from core.context.self_model import self_model
+                return str(self_model.get_summary())
+            except Exception as e:
+                return f"Agent service failure: {e}"
+
+        if intent == "agent.get_world_model":
+            try:
+                from core.context.world_model import world_model
+                return str(world_model.get_summary())
+            except Exception as e:
+                return f"Agent service failure: {e}"
+
+        if intent == "agent.get_active_goals":
+            try:
+                from core.context.long_term_goals import goal_manager_9b
+                return str(goal_manager_9b.get_active_goals_with_subgoals())
+            except Exception as e:
+                return f"Agent service failure: {e}"
+
+        if intent == "agent.clear_memory":
+            try:
+                from core.context.memory_manager import memory_manager
+                memory_manager.clear_all_context_memory()
+                return "All contextual memory pools successfully cleared."
+            except Exception as e:
+                return f"Agent service failure: {e}"
+
         if intent == "agent.cancel_goal":
             try:
                 from core.agent.goal_manager import goal_manager

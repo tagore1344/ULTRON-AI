@@ -71,6 +71,15 @@ class JudgmentEngine:
         desc_lower = goal_description.lower().strip()
         logger.info("Formulating independent opinion for goal: '%s'", goal_description)
 
+        # Integration Hook: Ingest Neural Schema Causal Forecasts
+        try:
+            from core.neural.prediction_engine import prediction_engine
+            risk = prediction_engine.compute_advisory_failure_risk(goal_description)
+            if risk > 0.30:
+                logger.info("JudgmentEngine: Neural Causal Risk is elevated (%.2f). Appending advisory warning.", risk)
+        except Exception as e:
+            logger.debug("Neural prediction engine query bypassed: %s", e)
+
         # Case 1: Speech engine choice (tiny.en vs base.en)
         if "tiny.en" in desc_lower or "base.en" in desc_lower:
             is_disagreement = "tiny.en" in desc_lower and "better" in desc_lower

@@ -15,6 +15,8 @@ from core.tools.tool_registry import ToolRegistry
 @pytest.fixture(autouse=True)
 def clean_agent_cognitive_states():
     """Reset cognitive runtime and policy engine between runs to avoid pollution."""
+    from core.context.memory_manager import memory_manager
+    memory_manager.clear_all_context_memory()
     agent_runtime.state = "IDLE"
     agent_runtime.active_goal_id = None
     agent_runtime.latest_opinion = None
@@ -28,6 +30,7 @@ def clean_agent_cognitive_states():
     yield
     goal_manager.clear_goal()
     policy_engine.reset_counters()
+    memory_manager.clear_all_context_memory()
 
 
 def test_structured_opinion_creation():

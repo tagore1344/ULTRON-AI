@@ -3,6 +3,9 @@ import logging
 from typing import List, Dict, Any
 from core.agent.task_graph import TaskGraph, TaskNode
 
+# Phase 9B Context Imports
+from core.context.memory_manager import memory_manager
+
 logger = logging.getLogger("ultron-api")
 
 
@@ -156,7 +159,27 @@ class Planner:
         """Parse the goal, generate candidate plans, select the best candidate, and return its TaskGraph."""
         logger.info("Generating candidate plans for goal: '%s'", goal_description)
 
+        # 1. Query past strategies from Strategy Memory
+        relevant_strats = memory_manager.get_relevant_memories(goal_description, limit=2)
+        past_success_boost = 0.0
+        for strat in relevant_strats:
+            if strat.get("source_partition") == "Strategy":
+                # Boost confidence if we have historically succeeded at this exact/similar task pattern
+                past_success_boost += 0.05
+                logger.info("Phase 9B Planner: Found highly successful historical strategy template. Boosting expectation by 5%%.")
+
         candidates = self.generate_candidates(goal_description)
+
+        # Integration Hook: Ingest Neural Schema Causal Forecasts as advisory metadata
+        try:
+            from core.neural.prediction_engine import prediction_engine
+            for candidate in candidates:
+                risk = prediction_engine.compute_advisory_failure_risk(candidate.name)
+                if risk > 0.0:
+                    candidate.risks.append(f"Advisory Causal Failure Risk: {risk:.1%}")
+        except Exception as e:
+            logger.debug("Neural prediction engine query bypassed in Planner: %s", e)
+
         if not candidates:
             # Fallback safe plan
             logger.warning("No candidate plans generated. Emitting default single-node graph.")
@@ -164,11 +187,13 @@ class Planner:
             g.add_node(TaskNode("node_001", "Process general prompt", "chat", goal_description))
             return g
 
-        # Select best candidate plan based on expected success and cost constraints
-        # Sort candidates primarily by success, and secondarily by lower cost/latency
-        # However, we must follow existing policy engine constraints (such as blocking unsafe/high risk options)
+        # Select best candidate plan based on expected success (boosted by experience) and cost constraints
         best_candidate = candidates[0]
+        # Apply the success boost to all candidate expectation scores based on historical memory
+        best_candidate.expected_success = min(1.0, best_candidate.expected_success + past_success_boost)
+
         for candidate in candidates[1:]:
+            candidate.expected_success = min(1.0, candidate.expected_success + past_success_boost)
             # If the candidate has higher expected success, or same success with lower token cost, prioritize it
             if candidate.expected_success > best_candidate.expected_success:
                 best_candidate = candidate

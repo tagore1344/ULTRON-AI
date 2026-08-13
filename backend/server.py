@@ -13,6 +13,8 @@ from backend.api.routes.chat import router as chat_router
 from backend.api.routes.system import router as system_router
 from backend.api.routes.commands import router as command_router
 from backend.api.routes.auth import router as auth_router
+from backend.api.routes.context import router as context_router
+from backend.api.routes.devices import router as devices_router
 from backend.api.websocket.connection_manager import manager
 from backend.services.confirmation_service import confirmation_service
 
@@ -24,6 +26,17 @@ def create_app() -> FastAPI:
     """FastAPI Application Factory."""
     # 1. Initialize SQLite database, directory buffers, and default schemas statefully
     initialize_database()
+
+    # Initialize Context and Long Term Goal database schemas statefully
+    try:
+        from core.context.memory_manager import memory_manager
+        memory_manager.initialize_database()
+        from core.context.long_term_goals import goal_manager_9b
+        goal_manager_9b.initialize_database()
+        # Non-blocking trigger to re-hydrate goals and refresh caches
+        goal_manager_9b.rehydrate_goals_on_boot()
+    except Exception as e:
+        logger.error("Failed to initialize context databases at boot: %s", e)
 
     app = FastAPI(
         title=settings.app_title,
@@ -54,6 +67,8 @@ def create_app() -> FastAPI:
     app.include_router(system_router, prefix="/api/v1")
     app.include_router(command_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(context_router, prefix="/api/v1")
+    app.include_router(devices_router, prefix="/api/v1")
 
     # 4. Base Optional Root Endpoint
     @app.get("/", summary="Root Endpoint")
@@ -117,6 +132,40 @@ def create_app() -> FastAPI:
                         "event": "PONG",
                         "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
                     }, websocket)
+
+                # 3.5. Authenticated Emergency Stop handler
+                elif event_type == "EMERGENCY_STOP":
+                    manager.update_session_heartbeat(websocket)
+                    from backend.database.device_repository import device_repo
+                    device_data = device_repo.get_device_by_id(device_id)
+                    if not device_data or device_data.get("revoked", False) or "safe_commands" not in device_data["permissions"]:
+                        logger.warning("Unauthorized EMERGENCY_STOP attempt blocked from device: %s", device_id)
+                        await manager.send_personal_message({
+                            "event": "STATE_REJECTED",
+                            "reason": "Unauthorized emergency stop action. Missing safe_commands scope.",
+                            "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
+                        }, websocket)
+                    else:
+                        logger.critical("AUTHENTICATED EMERGENCY_STOP WebSocket event received from device %s!", device_id)
+                        from core.agent.agent_runtime import agent_runtime
+                        from core.agent.goal_manager import goal_manager
+                        from microphone_broker import mic_broker
+
+                        # 1. Trigger cancellation and reset status
+                        goal_manager.cancel_goal()
+                        goal_manager.clear_goal()
+                        agent_runtime.state = "IDLE"
+
+                        # 2. Release microphone locks
+                        for owner in ["AdvancedSpeechEngine", "VoiceID", "AdvancedWakeWordDetector", "ClapDetector"]:
+                            mic_broker.release(owner)
+
+                        # 3. Broadcast cancellation
+                        await manager.broadcast({
+                            "event": "EMERGENCY_STOP_TRIGGERED",
+                            "cancelled_by": device_id,
+                            "timestamp": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat() + "Z"
+                        })
 
                 # 4. Interactive Confirmation Response handler
                 elif event_type == "CONFIRMATION_RESPONSE":
