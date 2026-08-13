@@ -138,8 +138,8 @@ def test_timeout_enforcement_after_24h():
     )
 
     # Artificially shift start time back 25 hours
-    dt = datetime.datetime.now() - datetime.timedelta(hours=25)
-    experiment_manager_9c3.active_experiment["start_time"] = dt.replace(tzinfo=None).isoformat() + "Z"
+    dt = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(hours=25)
+    experiment_manager_9c3.active_experiment["start_time"] = dt.isoformat() + "Z"
 
     # Next cohort routing check should catch timeout and cancel
     cohort = experiment_manager_9c3.determine_cohort("session_user")

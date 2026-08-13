@@ -205,7 +205,7 @@ def test_world_model_observation_refresh_and_expiration():
     assert summary["is_stale"] is False
 
     # Force mock staleness expiration
-    world_model.last_updated = datetime.datetime.now() - datetime.timedelta(seconds=150)
+    world_model.last_updated = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=150)
     assert world_model.is_stale() is True
 
 
