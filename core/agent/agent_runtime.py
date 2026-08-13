@@ -205,6 +205,13 @@ class AgentRuntime:
                     success_status=True
                 )
 
+                # Ingest non-blocking Memory Consolidation Sweep
+                try:
+                    from core.context.memory_consolidator import memory_consolidator
+                    memory_consolidator.run_consolidation_sweep()
+                except Exception as e:
+                    logger.debug("Continuous consolidator bypassed: %s", e)
+
                 # Step 19: DETECT WEAKNESSES & Step 20: GENERATE HYPOTHESES
                 try:
                     from core.evolution.hypothesis_engine import hypothesis_engine

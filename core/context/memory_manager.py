@@ -59,7 +59,8 @@ class MemoryManager:
                 confidence_score REAL NOT NULL,
                 success_status INTEGER NOT NULL CHECK (success_status IN (0, 1)),
                 resource_tokens_spent INTEGER,
-                resource_latency_sec REAL
+                resource_latency_sec REAL,
+                importance_score REAL DEFAULT 0.0
             )
         """)
 
@@ -113,6 +114,14 @@ class MemoryManager:
         """)
 
         conn.commit()
+
+        # Schema Migration: Add importance_score if missing from prior legacy tables
+        try:
+            cursor.execute("ALTER TABLE episodic_memory ADD COLUMN importance_score REAL DEFAULT 0.0")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass # Already has the column from Phase 10.2 schema
+
         conn.close()
         logger.info("Context database successfully initialized at: %s", DB_PATH)
 
@@ -158,8 +167,8 @@ class MemoryManager:
             INSERT INTO episodic_memory (
                 memory_id, goal_id, timestamp, user_prompt, parsed_intent,
                 actual_results, confidence_score, success_status,
-                resource_tokens_spent, resource_latency_sec
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                resource_tokens_spent, resource_latency_sec, importance_score
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0.0)
             """,
             (
                 memory_id, goal_id, timestamp, sanitized_prompt, parsed_intent,
