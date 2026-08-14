@@ -470,6 +470,58 @@ class AgentRuntime:
 
             logger.info("Continuous self-evaluation stored: %s", self.latest_self_evaluation)
 
+            # Ingest Meta-Reasoning & Evaluation Calibration
+            try:
+                from core.agent.meta_reasoning import meta_reasoning_engine, MetaReasoningRecord
+
+                # Fetch baseline estimates from the selected plan candidate
+                pred_success = 0.95
+                pred_latency = 0.20
+                pred_tokens = 500
+                if hasattr(planner, "latest_candidates") and planner.latest_candidates:
+                    pred_success = planner.latest_candidates[0].expected_success
+                    pred_latency = planner.latest_candidates[0].estimated_latency_sec
+                    pred_tokens = planner.latest_candidates[0].estimated_cost_tokens
+
+                record = MetaReasoningRecord(
+                    cycle_id=goal_id,
+                    goal=goal_description,
+                    predicted_success=pred_success,
+                    actual_success=success_state,
+                    predicted_latency=pred_latency,
+                    actual_latency=elapsed_seconds,
+                    predicted_tokens=pred_tokens,
+                    actual_tokens=policy_engine.tokens_spent,
+                    failed_assumption=error_summary,
+                    lesson_learned=lessons
+                )
+
+                # Store record and execute evaluations
+                meta_reasoning_engine.records.append(record)
+                calibration = meta_reasoning_engine.evaluate_cycle_calibration(record)
+                plan_eval = meta_reasoning_engine.evaluate_plan_quality(record, retries=0)
+                judgment_eval = meta_reasoning_engine.evaluate_judgment_quality(
+                    opinion_confidence=opinion.confidence_score if 'opinion' in locals() else 0.95,
+                    observed_success=success_state
+                )
+
+                logger.info(
+                    "[META_EVAL] Cycle Calibration: %s | Plan Quality: %s | Judgment Quality: %s",
+                    calibration["combined_calibration_error"],
+                    plan_eval["plan_quality_score"],
+                    judgment_eval["judgment_quality_score"]
+                )
+
+                # Update long term goals ledger statefully using meta progress metrics
+                progress_est = goal_manager_9b.evaluate_goal_progress(goal_id)
+                goal_manager_9b.update_goal_hypotheses_and_experiments(
+                    goal_id=goal_id,
+                    last_action=f"Meta-evaluated. Success Probability: {progress_est['success_probability']}"
+                )
+
+            except Exception as e:
+                logger.debug("Meta-reasoning evaluation bypassed: %s", e)
+
             # Phase 9B Memory Updates
             # A. Log result to Episodic Memory
             memory_manager.add_episodic_memory(
