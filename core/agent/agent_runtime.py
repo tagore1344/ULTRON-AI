@@ -133,10 +133,19 @@ class AgentRuntime:
                 except Exception:
                     pass
 
-                # Step 7: SELECT PRIORITIES
-                # Pick the first active/pending goal to process
+                # Step 7: SELECT PRIORITIES (Goal Scheduler)
+                # Enforce concurrency limits: max 1 active goal run
+                ranked_goals = goal_manager_9b.get_ranked_goals()
                 target_goal = None
-                for g in active_lt_goals:
+
+                for g in ranked_goals:
+                    # Check blockers dynamically before scheduling execution
+                    progress = goal_manager_9b.evaluate_goal_progress(g["goal_id"])
+                    if len(progress["blockers"]) > 0:
+                        logger.warning("Goal '%s' is BLOCKED: %s. Skipping.", g["goal_id"], progress["blockers"][0])
+                        goal_manager_9b.update_goal_status(g["goal_id"], "BLOCKED")
+                        continue
+
                     if g["status"] in ("ACTIVE", "PENDING"):
                         target_goal = g
                         break
@@ -182,6 +191,14 @@ class AgentRuntime:
                 ready = graph.get_ready_nodes()
                 for node in ready:
                     node.state = NodeState.RUNNING
+
+                    # State authority check: Re-verify capabilities before run
+                    if self_model.capabilities.get("windows_pycaw_volume") == "FAILED" and "volume" in node.intent:
+                        logger.warning("Causal Failure: Capability FAILED. Triggering Re-planning.")
+                        # REPLAN: Re-generate the next valid subgoal rather than blindly retrying!
+                        graph = planner.generate_plan(goal_desc)
+                        break
+
                     # Step 16: CRITIQUE
                     result = await tool_orchestrator.execute_action(node.intent, node.target)
                     success = critic.evaluate_result(result)
@@ -360,6 +377,13 @@ class AgentRuntime:
                         dependencies=",".join(node.dependencies)
                     )
                     goal_manager_9b.update_subgoal_status(subgoal_uid, "RUNNING")
+
+                    # State authority check: Re-verify capabilities before run
+                    if self_model.capabilities.get("windows_pycaw_volume") == "FAILED" and "volume" in node.intent:
+                        logger.warning("Causal Failure: Capability FAILED. Triggering Re-planning.")
+                        # REPLAN: Re-generate the next valid subgoal rather than blindly retrying!
+                        graph = planner.generate_plan(goal_description)
+                        break
 
                     # Determine risk level of the intent
                     risk_class = "SAFE"
