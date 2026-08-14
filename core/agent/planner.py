@@ -38,6 +38,9 @@ class CandidatePlan:
 class Planner:
     """Decomposes complex long-horizon goal statements into multiple candidate plans and selects the best one."""
 
+    def __init__(self):
+        self.latest_candidates: List[CandidatePlan] = []
+
     def generate_candidates(self, goal_description: str) -> List[CandidatePlan]:
         """Generates alternative candidate plans with distinct metrics, tools, and risk assessments."""
         desc_lower = goal_description.lower().strip()
@@ -169,6 +172,7 @@ class Planner:
                 logger.info("Phase 9B Planner: Found highly successful historical strategy template. Boosting expectation by 5%%.")
 
         candidates = self.generate_candidates(goal_description)
+        self.latest_candidates = candidates
 
         # Integration Hook: Ingest Neural Schema Causal Forecasts as advisory metadata
         try:

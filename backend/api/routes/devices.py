@@ -10,6 +10,7 @@ from backend.security.authorization import require_system_status_permission, req
 from backend.security.authentication import get_current_device, AuthenticatedDevice
 from backend.api.websocket.connection_manager import manager
 from backend.api.routes.auth import DeviceModel
+from core.context.world_model import world_model
 
 logger = logging.getLogger("ultron-api")
 router = APIRouter()
@@ -30,6 +31,15 @@ class SyncResponseItem(BaseModel):
     value: Any
     status: str  # "ACCEPTED", "STATE_REJECTED"
     authoritative_value: Optional[Any] = None
+
+
+class ClientTelemetryItem(BaseModel):
+    key: str
+    value: Any
+
+
+class ClientTelemetryRequest(BaseModel):
+    items: List[ClientTelemetryItem]
 
 
 @router.get(
@@ -149,7 +159,6 @@ async def post_sync_state(
     logger.info("State synchronization requested by device %s (%s)", device.device_id, device.device_name)
     response_items = []
 
-    # Strict definitions of state authority boundaries
     host_authoritative_keys = [
         "goals", "subgoals", "neural_schema", "device_registry", "permissions",
         "authentication", "approval_state", "high_risk_state", "evolution_state",
@@ -159,7 +168,6 @@ async def post_sync_state(
         "ui_preferences", "cached_telemetry", "draft_commands", "offline_event_buffer"
     ]
 
-    # Mock in-memory host database state for synchronization mapping
     host_state_mock = {
         "goals": [{"goal_id": "g1", "status": "ACTIVE"}],
         "permissions": ["chat", "system_status"],
@@ -171,7 +179,6 @@ async def post_sync_state(
         key = item.key
 
         if key in host_authoritative_keys:
-            # Enforce strict Host Authority boundary: reject any client-side modifications instantly
             logger.warning("Conflict rejected: Attempted write on HOST_AUTHORITATIVE target key '%s' by client.", key)
             authoritative_val = host_state_mock.get(key)
             response_items.append(SyncResponseItem(
@@ -181,7 +188,6 @@ async def post_sync_state(
                 authoritative_value=authoritative_val
             ))
         elif key in client_writable_keys:
-            # Enforce standard CRDT Last-Write-Wins merging for client-writable telemetry/prefs
             logger.info("State merged successfully for CLIENT_WRITABLE key '%s' using LWW.", key)
             response_items.append(SyncResponseItem(
                 key=key,
@@ -189,7 +195,6 @@ async def post_sync_state(
                 status="ACCEPTED"
             ))
         else:
-            # Unknown keys default to state rejection
             response_items.append(SyncResponseItem(
                 key=key,
                 value=None,
@@ -198,3 +203,30 @@ async def post_sync_state(
             ))
 
     return response_items
+
+
+@router.post(
+    "/context/sync/telemetry",
+    status_code=status.HTTP_200_OK,
+    summary="Submit Client Telemetry Observations Safely",
+    description="Ingests raw mobile/watch telemetry. Direct operational state injections are strictly rejected to enforce Host Authority."
+)
+async def post_sync_telemetry(
+    payload: ClientTelemetryRequest,
+    device: AuthenticatedDevice = Depends(require_system_status_permission)
+):
+    logger.info("Telemetry observations submission received from device %s (%s)", device.device_id, device.device_name)
+
+    for item in payload.items:
+        # Enforce Host Authority boundary over client-side inputs
+        success = world_model.update_telemetry_observation(item.key, item.value)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Forbidden: Direct modification of state key '{item.key}' is prohibited."
+            )
+
+    return {
+        "success": True,
+        "message": "All safe client telemetry observations successfully ingested and validated by host."
+    }
