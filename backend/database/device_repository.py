@@ -27,8 +27,9 @@ class DeviceRepository:
             cursor.execute("""
                 INSERT INTO devices (
                     device_id, device_name, device_type, token_hash,
-                    permissions, created_at, paired_at, updated_at, last_seen, revoked
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    permissions, created_at, paired_at, updated_at, last_seen, revoked,
+                    public_key, capabilities
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 device_data["device_id"],
                 device_data["device_name"],
@@ -39,7 +40,9 @@ class DeviceRepository:
                 device_data["paired_at"],
                 device_data["updated_at"],
                 device_data["last_seen"],
-                1 if device_data.get("revoked", False) else 0
+                1 if device_data.get("revoked", False) else 0,
+                device_data.get("public_key"),
+                device_data.get("capabilities")
             ))
             conn.commit()
             return True
@@ -60,6 +63,9 @@ class DeviceRepository:
                 res = dict(row)
                 res["permissions"] = [x.strip() for x in res["permissions"].split(",") if x.strip()]
                 res["revoked"] = bool(res["revoked"])
+                # Fallback defaults for D1 migration
+                res["public_key"] = res.get("public_key")
+                res["capabilities"] = res.get("capabilities") or "{}"
                 return res
             return None
         except sqlite3.Error as e:
@@ -79,6 +85,8 @@ class DeviceRepository:
                 res = dict(row)
                 res["permissions"] = [x.strip() for x in res["permissions"].split(",") if x.strip()]
                 res["revoked"] = bool(res["revoked"])
+                res["public_key"] = res.get("public_key")
+                res["capabilities"] = res.get("capabilities") or "{}"
                 return res
             return None
         except sqlite3.Error as e:
@@ -99,6 +107,8 @@ class DeviceRepository:
                 d = dict(r)
                 d["permissions"] = [x.strip() for x in d["permissions"].split(",") if x.strip()]
                 d["revoked"] = bool(d["revoked"])
+                d["public_key"] = d.get("public_key")
+                d["capabilities"] = d.get("capabilities") or "{}"
                 devices.append(d)
             return devices
         except sqlite3.Error as e:

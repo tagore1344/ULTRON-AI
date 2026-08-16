@@ -63,5 +63,14 @@ def initialize_database():
     """)
 
     conn.commit()
+
+    # Schema Migrations: Add public_key and capabilities columns if missing
+    try:
+        cursor.execute("ALTER TABLE devices ADD COLUMN public_key TEXT")
+        cursor.execute("ALTER TABLE devices ADD COLUMN capabilities TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass # Already migrated
+
     conn.close()
     logger.info("SQLite device database successfully initialized at: %s", DB_PATH)
