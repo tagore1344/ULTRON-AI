@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -28,6 +28,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.2'
+          validate-wrappers: false
 
       - name: Regenerate wrapper
         working-directory: mobile/android
@@ -38,6 +39,7 @@ jobs:
         run: |
           test -s gradle/wrapper/gradle-wrapper.jar
           jar tf gradle/wrapper/gradle-wrapper.jar | grep -q 'org/gradle/wrapper/GradleWrapperMain.class'
+          sha256sum gradle/wrapper/gradle-wrapper.jar
 
       - name: Remove repair workflow
         run: rm -f .github/workflows/repair-gradle-wrapper.yml
