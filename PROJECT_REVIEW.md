@@ -111,6 +111,13 @@ The memory ecosystem is divided into three highly functional tiers:
 
 ## 🚀 5. Strategic Recommendations
 
+> **Session status update:** Recommendations 5.1 (multi-model consensus) and
+> 5.4 (dueling tool registries → canonical delegation) are now **implemented**.
+> `AIOrchestrator` activates all three providers with failure-aware fallback,
+> `ModelSelector` performs keyword-category routing, availability probes prevent
+> key-missing crashes, and `ULTRON_CONSENSUS_MODE=multi` enables full
+> multi-provider consensus. See `ai/test_orchestrator_activation.py`.
+
 To bring ULTRON-AI to a commercial or open-source production-grade release, we recommend implementing the following next-step enhancements:
 
 1.  **Fully Activate Multi-Model Consensus:**

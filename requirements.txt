@@ -1,5 +1,7 @@
 # ULTRON AI dependencies
 google-generativeai>=0.3.0
+# NOTE: google-generativeai is End-of-Life upstream. Migration target:
+# google-genai>=1.0.0 (activate after installing locally; gemini_agent falls back gracefully)
 openai>=1.0.0
 faster-whisper>=1.0.0
 pyttsx3>=2.90

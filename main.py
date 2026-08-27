@@ -18,7 +18,7 @@ async def main():
 
         response = await assistant.run_once(user_input)
 
-        print(f"\nJARVIS: {response}")
+        print(f"\nULTRON: {response}")
 
 
 if __name__ == "__main__":
