@@ -1,7 +1,7 @@
 # backend/tests/test_phase9e.py — Cognitive Change-Proposal Gateway (Phase 9E)
+import os
 import pytest
 import asyncio
-import json
 from fastapi.testclient import TestClient
 
 from backend.server import app
@@ -9,14 +9,14 @@ from backend.database.device_repository import device_repo
 from backend.services.confirmation_service import confirmation_service
 from backend.services.proposal_service import proposal_service
 from core.agent.proposal_manager import proposal_manager
-from core.config import load_config, save_config
+from core.config import load_config
 
 client = TestClient(app, raise_server_exceptions=False)
 
 
 @pytest.fixture(autouse=True)
 def clean_proposal_state():
-    """Fresh proposal ledger, clean lockouts, and a protected assistant config."""
+    """Fresh proposal ledger, clean lockouts, and a byte-exact assistant config restore."""
     device_repo.reset_failed_attempts("testclient")
     device_repo.reset_failed_attempts("127.0.0.1")
     confirmation_service.pending_requests.clear()
@@ -28,7 +28,12 @@ def clean_proposal_state():
     conn.commit()
     conn.close()
 
-    config_backup = json.dumps(load_config())
+    # Byte-exact backup: load/save round-trips reorder keys, which would dirty git.
+    config_path = "assistant_config.json"
+    config_backup = None
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            config_backup = f.read()
 
     yield
 
@@ -39,7 +44,9 @@ def clean_proposal_state():
     conn.commit()
     conn.close()
 
-    save_config(json.loads(config_backup))
+    if config_backup is not None:
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(config_backup)
     confirmation_service.pending_requests.clear()
 
 
@@ -158,7 +165,11 @@ def test_approved_adaptation_persists_to_assistant_config():
     """In-process proof that approved SAFE adaptations are persisted for the live assistant."""
     from backend.services.proposal_service import ProposalService
 
-    original = json.dumps(load_config())
+    config_path = "assistant_config.json"
+    config_backup = None
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            config_backup = f.read()
     try:
         service = ProposalService()
         service._save_config_key("voice_aliases", {"chroome": "chrome"})
@@ -168,7 +179,9 @@ def test_approved_adaptation_persists_to_assistant_config():
         service._save_config_key("voice_aliases", {"gogle": "google"})
         assert load_config().get("voice_aliases") == {"chroome": "chrome", "gogle": "google"}
     finally:
-        save_config(json.loads(original))
+        if config_backup is not None:
+            with open(config_path, "w", encoding="utf-8") as f:
+                f.write(config_backup)
 
 
 def test_rejection_flow_and_resolved_lockout(auth_context):
