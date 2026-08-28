@@ -70,7 +70,7 @@ class CandidateManager:
         # 4. Handle Source Code Change Proposals (HIGH RISK / Banned from self-update bypass)
         if risk_class == "HIGH_RISK" or "change_proposal" in adaptation:
             logger.warning("CandidateManager: Candidate is HIGH_RISK source-change request. Creating CHANGE_PROPOSAL only.")
-            return {
+            candidate = {
                 "id": candidate_id,
                 "hypothesis_id": hypothesis["id"],
                 "baseline_configuration": baseline,
@@ -82,6 +82,32 @@ class CandidateManager:
                 "rollback_snapshot": {},
                 "status": "REJECTED" # Lock out from background execution entirely
             }
+
+            # Phase 9E: surface the change-proposal to the human authorization ledger
+            # and connected HUD clients. The candidate itself stays REJECTED from
+            # automatic execution; humans decide through the gateway.
+            try:
+                from core.agent.proposal_manager import proposal_manager, RISK_HIGH
+                cp = adaptation.get("change_proposal", {})
+                proposal = proposal_manager.create_proposal(
+                    title=f"Source change: {cp.get('file', 'unknown file')}",
+                    reason=hypothesis.get("observed_problem", "Cognitive weakness identified."),
+                    component=cp.get("file", "unknown"),
+                    risk_class=RISK_HIGH,
+                    expected_impact=str(hypothesis.get("predicted_outcomes", {}).get("error_rate", "unspecified")),
+                    proposed_action="Review the proposed diff and authorize a signed release "
+                                    "through the trusted cryptographic update pipeline.",
+                    payload=adaptation,
+                    source="evolution",
+                    source_ref=hypothesis["id"],
+                )
+                if proposal:
+                    from backend.services.proposal_service import proposal_service
+                    proposal_service.schedule_new_proposal_broadcast(proposal)
+            except Exception as e:
+                logger.debug("Proposal bridge bypassed: %s", e)
+
+            return candidate
 
         # 5. Formulate safe, immutable candidate record
         candidate = {

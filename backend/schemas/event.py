@@ -28,6 +28,12 @@ class EventType(str, Enum):
     CONFIRMATION_EXPIRED = "CONFIRMATION_EXPIRED"
     CONFIRMATION_CANCELLED = "CONFIRMATION_CANCELLED"
 
+    # Phase 9E: Cognitive change-proposal lifecycle events
+    PROPOSAL_CREATED = "PROPOSAL_CREATED"
+    PROPOSAL_RESOLVED = "PROPOSAL_RESOLVED"
+    PROPOSAL_EXPIRED = "PROPOSAL_EXPIRED"
+    PROPOSAL_EXECUTION_RESULT = "PROPOSAL_EXECUTION_RESULT"
+
 
 class EventEnvelope(BaseModel):
     """Pydantic model validating standard structure envelopes for all outbound WS events."""

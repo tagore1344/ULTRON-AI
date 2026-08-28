@@ -7,6 +7,7 @@ import 'package:ultron_mobile/features/pairing/pairing_screen.dart';
 import 'package:ultron_mobile/features/home/home_screen.dart';
 import 'package:ultron_mobile/features/chat/chat_screen.dart';
 import 'package:ultron_mobile/features/control/control_screen.dart';
+import 'package:ultron_mobile/features/proposals/proposals_screen.dart';
 
 class UltronApp extends StatelessWidget {
   const UltronApp({super.key});
@@ -51,6 +52,7 @@ class _NavigationScaffoldState extends State<NavigationScaffold> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const ChatScreen(),
+    const ProposalsScreen(),
     const ControlScreen(),
   ];
 
@@ -86,6 +88,11 @@ class _NavigationScaffoldState extends State<NavigationScaffold> {
               icon: Icon(Icons.chat_bubble_outline),
               activeIcon: Icon(Icons.chat_bubble, color: UltronTheme.cyanAccent),
               label: "CHAT",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.fact_check_outlined),
+              activeIcon: Icon(Icons.fact_check, color: UltronTheme.cyanAccent),
+              label: "REVIEW",
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.tune_outlined),

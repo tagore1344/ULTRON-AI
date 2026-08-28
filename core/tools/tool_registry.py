@@ -1,4 +1,6 @@
 # core/tools/tool_registry.py — Tool execution registry
+import logging
+
 try:
     from system_controller import SystemController
 except Exception:
@@ -18,6 +20,8 @@ try:
     from app_controller import AppController
 except Exception:
     AppController = None
+
+logger = logging.getLogger("ultron-api")
 
 
 class ToolRegistry:
@@ -202,6 +206,18 @@ class ToolRegistry:
 
         if intent == "app.open":
             target_lower = target.lower().strip()
+
+            # 0. Config-backed voice alias mapping (populated by approved Phase 9E proposals)
+            try:
+                from core.config import load_config
+                voice_aliases = load_config().get("voice_aliases") or {}
+                if isinstance(voice_aliases, dict) and target_lower in voice_aliases:
+                    mapped = str(voice_aliases[target_lower]).lower().strip()
+                    if mapped:
+                        logger.info("Voice alias applied: '%s' -> '%s'", target_lower, mapped)
+                        target_lower = mapped
+            except Exception as e:
+                logger.debug("Voice alias lookup bypassed: %s", e)
 
             # Safe bounded alias mapping for voice transcription typos
             if target_lower == "chroome":

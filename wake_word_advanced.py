@@ -19,12 +19,10 @@ class AdvancedWakeWordDetector:
         self.callback = callback
         self.is_running = False
         self.wake_words = [
-            "jarvis",
-            "hey jarvis",
-            "ok jarvis",
-            "hi jarvis",
             "ultron",
-            "hey ultron"
+            "hey ultron",
+            "ok ultron",
+            "hi ultron"
         ]
 
         self.model = None

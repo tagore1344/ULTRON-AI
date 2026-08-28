@@ -15,6 +15,7 @@ from backend.api.routes.commands import router as command_router
 from backend.api.routes.auth import router as auth_router
 from backend.api.routes.context import router as context_router
 from backend.api.routes.devices import router as devices_router
+from backend.api.routes.proposals import router as proposals_router
 from backend.api.websocket.connection_manager import manager
 from backend.services.confirmation_service import confirmation_service
 
@@ -37,6 +38,13 @@ def create_app() -> FastAPI:
         goal_manager_9b.rehydrate_goals_on_boot()
     except Exception as e:
         logger.error("Failed to initialize context databases at boot: %s", e)
+
+    # Phase 9E: Initialize the cognitive proposal ledger schema statefully
+    try:
+        from core.agent.proposal_manager import proposal_manager
+        proposal_manager.initialize_database()
+    except Exception as e:
+        logger.error("Failed to initialize proposal database at boot: %s", e)
 
     app = FastAPI(
         title=settings.app_title,
@@ -69,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(context_router, prefix="/api/v1")
     app.include_router(devices_router, prefix="/api/v1")
+    app.include_router(proposals_router, prefix="/api/v1")
 
     # 4. Base Optional Root Endpoint
     @app.get("/", summary="Root Endpoint")

@@ -9,6 +9,7 @@ An advanced AI assistant application built with Python. ULTRON AI features voice
 - **Screen Vision** — Capture and analyze screen content with OCR
 - **System Automation** — Control volume, brightness, media, power, and more
 - **Memory System** — Conversation, session, and vector memory for context
+- **Cognitive Proposals (Phase 9E)** — ULTRON surfaces change-proposals to your phone for review/approval (see `docs/PHASE_9E.md`)
 - **Intent Routing** — Rule-based intent detection for tool execution
 - **Wake Word Detection** — Activate with "Hey ULTRON"
 - **Face ID & Voice ID** — Advanced identity verification
