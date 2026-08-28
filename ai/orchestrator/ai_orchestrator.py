@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 
 from ai.orchestrator.prompt_manager import PromptManager
@@ -82,7 +83,10 @@ class AIOrchestrator:
         """Tries providers in order. Returns (successful_answer|None, collected_errors)."""
         errors = []
         for provider in ordered_providers:
+            start = time.perf_counter()
             response = self._ask_provider(provider, prompt)
+            elapsed_ms = (time.perf_counter() - start) * 1000
+            logger.info("PROVIDER_CALL provider=%s latency_ms=%.1f", provider, elapsed_ms)
             if not self._is_failure(response):
                 return response, errors
             errors.append(response)

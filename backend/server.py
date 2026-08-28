@@ -1,12 +1,14 @@
 # backend/server.py
 import datetime
 import logging
+import time
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
 from backend.logging_config import configure_logging
+from backend.logging_context import set_request_id, get_request_id
 from backend.database.connection import initialize_database
 from backend.api.routes.health import router as health_router
 from backend.api.routes.chat import router as chat_router
@@ -67,7 +69,25 @@ def create_app() -> FastAPI:
         allow_credentials=True if allow_origins != ["*"] else False,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Request-ID", "X-Latency-ms"],
     )
+
+    # ── Observability middleware: bind a request ID per HTTP call and time it ──
+    @app.middleware("http")
+    async def request_observability(request: Request, call_next):
+        start_ns = time.perf_counter_ns()
+        # Reuse a client-supplied trace id if present, else mint one (never trust as identity)
+        client_id = request.headers.get("X-Request-ID")
+        req_id = set_request_id(client_id)
+        response = await call_next(request)
+        elapsed_ms = (time.perf_counter_ns() - start_ns) / 1_000_000
+        response.headers["X-Request-ID"] = req_id
+        response.headers["X-Latency-ms"] = f"{elapsed_ms:.1f}"
+        logger.info(
+            "req=%s method=%s path=%s status=%s latency_ms=%.1f",
+            req_id, request.method, request.url.path, response.status_code, elapsed_ms,
+        )
+        return response
 
     # 3. Register REST router namespaces under /api/v1
     app.include_router(health_router, prefix="/api/v1")
