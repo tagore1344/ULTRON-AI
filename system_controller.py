@@ -1,5 +1,6 @@
 # system_controller.py
 import os
+import asyncio
 import ctypes
 import time
 import datetime
@@ -155,10 +156,22 @@ class SystemController:
         time.sleep(2)
         subprocess.run(["shutdown", "/s", "/t", "5"], shell=False)
 
+    async def ashutdown(self):
+        """Non-blocking variant for async execution paths (FastAPI/gateway)."""
+        self.speech.speak("Shutting down in 5 seconds")
+        await asyncio.to_thread(time.sleep, 2)
+        await asyncio.to_thread(subprocess.run, ["shutdown", "/s", "/t", "5"], shell=False)
+
     def restart(self):
         self.speech.speak("Restarting in 5 seconds")
         time.sleep(2)
         subprocess.run(["shutdown", "/r", "/t", "5"], shell=False)
+
+    async def arestart(self):
+        """Non-blocking variant for async execution paths (FastAPI/gateway)."""
+        self.speech.speak("Restarting in 5 seconds")
+        await asyncio.to_thread(time.sleep, 2)
+        await asyncio.to_thread(subprocess.run, ["shutdown", "/r", "/t", "5"], shell=False)
 
     def sleep(self):
         self.speech.speak("Going to sleep")
@@ -168,12 +181,32 @@ class SystemController:
             shell=False
         )
 
+    async def asleep(self):
+        """Non-blocking variant for async execution paths (FastAPI/gateway)."""
+        self.speech.speak("Going to sleep")
+        await asyncio.to_thread(time.sleep, 1)
+        await asyncio.to_thread(
+            subprocess.run,
+            ["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"],
+            shell=False,
+        )
+
     def lock_screen(self):
         ctypes.windll.user32.LockWorkStation()
         self.speech.speak("Screen locked")
 
+    async def alock_screen(self):
+        """Non-blocking variant for async execution paths (FastAPI/gateway)."""
+        await asyncio.to_thread(ctypes.windll.user32.LockWorkStation)
+        self.speech.speak("Screen locked")
+
     def cancel_shutdown(self):
         subprocess.run(["shutdown", "/a"], shell=False)
+        self.speech.speak("Shutdown cancelled")
+
+    async def acancel_shutdown(self):
+        """Non-blocking variant for async execution paths (FastAPI/gateway)."""
+        await asyncio.to_thread(subprocess.run, ["shutdown", "/a"], shell=False)
         self.speech.speak("Shutdown cancelled")
 
     # ===== MEDIA =====

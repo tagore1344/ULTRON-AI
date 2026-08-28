@@ -111,12 +111,25 @@ The memory ecosystem is divided into three highly functional tiers:
 
 ## 🚀 5. Strategic Recommendations
 
-> **Session status update:** Recommendations 5.1 (multi-model consensus) and
-> 5.4 (dueling tool registries → canonical delegation) are now **implemented**.
-> `AIOrchestrator` activates all three providers with failure-aware fallback,
-> `ModelSelector` performs keyword-category routing, availability probes prevent
-> key-missing crashes, and `ULTRON_CONSENSUS_MODE=multi` enables full
-> multi-provider consensus. See `ai/test_orchestrator_activation.py`.
+> **Session status update:** Recommendations 5.1 (multi-model consensus), 5.2
+> (Gemini `google-genai` SDK migration), and 5.3 (async subprocess hardening)
+> are now **implemented**.
+> * 5.1 — `AIOrchestrator` activates all three providers with failure-aware
+>   fallback; `ModelSelector` does keyword-category routing; availability probes
+>   prevent key-missing crashes; `ULTRON_CONSENSUS_MODE=multi` enables full
+>   multi-provider consensus (see `ai/test_orchestrator_activation.py`).
+> * 5.2 — `gemini_agent.py` now prefers the modern `google-genai` SDK with a
+>   graceful fallback to the legacy `google-generativeai` backend
+>   (`ULTRON_GEMINI_SDK` override for deterministic selection).
+> * 5.3 — `system_controller.py` gained `asyncio.to_thread` async variants
+>   (`ashutdown`, `arestart`, `asleep`, `alock_screen`, `acancel_shutdown`) and
+>   `app_controller.py` gained `aopen_app`; `core/tools/tool_registry.py`
+>   dispatches through these so the FastAPI event loop never blocks on OS calls.
+>   This also fixed a latent gap where allowlisted HIGH_RISK power commands
+>   (`shutdown`, `restart`, `sleep`, `lock_screen`) mapped to intent `chat` and
+>   failed as "Unknown tool intent" — they now execute after confirmation.
+> * 5.4 — dueling tool registries documented; legacy root `tool_registry.py`
+>   retained (still required by `assistant_with_brain.py`).
 
 To bring ULTRON-AI to a commercial or open-source production-grade release, we recommend implementing the following next-step enhancements:
 

@@ -106,6 +106,11 @@ py -m pytest ai/test_orchestrator_activation.py backend/tests/test_phase2.py
 | OpenAI | `ai/agents/openai_agent.py` | gpt-4.1-mini | General conversation |
 | DeepSeek | `ai/agents/deepseek_agent.py` | deepseek-chat | Cybersecurity / reasoning |
 
+Gemini uses the modern `google-genai` SDK by default with a graceful fallback to
+the legacy `google-generativeai` backend. Set `ULTRON_GEMINI_SDK=legacy` to force
+the fallback. OpenAI and DeepSeek use the OpenAI-compatible client (`openai`
+package); DeepSeek points at `https://api.deepseek.com` automatically.
+
 The `AIOrchestrator` routes each prompt to the best-suited provider via
 `ModelSelector`, then automatically cascades through remaining providers when
 the primary fails or its API key is missing (failure-aware fallback chain).

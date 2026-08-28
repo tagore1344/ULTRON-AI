@@ -6,6 +6,7 @@ import re
 import psutil
 import time
 from config import CONFIG
+import asyncio
 
 try:
     import pyautogui
@@ -437,6 +438,14 @@ class AppController:
         # ── 7. Search Start Menu ─────────────────
         self._search_start_menu(app_name)
         return False
+
+    async def aopen_app(self, app_name: str):
+        """Non-blocking variant of open_app for async execution paths (FastAPI/gateway).
+
+        Offloads the entire launch pipeline (registry scans, glob matching, and
+        OS launchers) to a worker thread so the event loop never stalls.
+        """
+        return await asyncio.to_thread(self.open_app, app_name)
 
     def _search_start_menu(self, app_name):
         """Search and open from Start Menu."""

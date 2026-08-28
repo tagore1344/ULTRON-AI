@@ -71,6 +71,16 @@ class CommandService:
         elif cmd == "open_website":
             target = parameters.get("url", "")
             return "app.open", target
+        elif cmd == "shutdown":
+            return "system.shutdown", ""
+        elif cmd == "restart":
+            return "system.restart", ""
+        elif cmd == "sleep":
+            return "system.sleep", ""
+        elif cmd == "lock_screen":
+            return "system.lock_screen", ""
+        elif cmd == "cancel_shutdown":
+            return "system.cancel_shutdown", ""
 
         return "chat", ""
 

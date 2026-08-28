@@ -1,4 +1,5 @@
 # core/tools/tool_registry.py — Tool execution registry
+import asyncio
 import logging
 
 try:
@@ -229,22 +230,23 @@ class ToolRegistry:
             if target_lower in ("youtube", "instagram", "facebook", "twitter", "google", "github"):
                 if self.system:
                     if target_lower == "youtube":
-                        return self.system.open_website("www.youtube.com")
+                        await asyncio.to_thread(self.system.open_website, "www.youtube.com")
                     elif target_lower == "instagram":
-                        return self.system.open_website("www.instagram.com")
+                        await asyncio.to_thread(self.system.open_website, "www.instagram.com")
                     else:
-                        return self.system.open_website(f"www.{target_lower}.com")
+                        await asyncio.to_thread(self.system.open_website, f"www.{target_lower}.com")
+                    return f"Opened {target_lower} in your browser."
                 return "System control unavailable."
 
-            # 2. Use AppController to launch native desktop applications
+            # 2. Use AppController to launch native desktop applications (offloaded to a thread)
             if self.apps:
-                success = self.apps.open_app(target_lower)
+                success = await asyncio.to_thread(self.apps.open_app, target_lower)
                 if success:
                     return f"Successfully opened {target_lower}."
                 else:
                     # Graceful browser fallback for WhatsApp if not installed locally
                     if target_lower == "whatsapp" and self.system:
-                        self.system.open_website("web.whatsapp.com")
+                        await asyncio.to_thread(self.system.open_website, "web.whatsapp.com")
                         return "Local WhatsApp is not installed. Opened WhatsApp Web in your browser instead."
                     return f"Application {target_lower} not found or failed to open."
             return "App launcher unavailable."
@@ -258,5 +260,59 @@ class ToolRegistry:
             if self.system:
                 return self.system.youtube_search(target)
             return "YouTube search unavailable."
+
+        # ==============================================================================
+        # POWER COMMANDS (HIGH_RISK — enforced upstream by command_service confirmation gate)
+        # Async variants offload blocking OS calls off the event loop.
+        # ==============================================================================
+        if intent == "system.shutdown":
+            if not self.system:
+                return "System control unavailable."
+            fn = getattr(self.system, "ashutdown", None) or self.system.shutdown
+            if asyncio.iscoroutinefunction(fn):
+                await fn()
+            else:
+                await asyncio.to_thread(fn)
+            return "Shutdown initiated."
+
+        if intent == "system.restart":
+            if not self.system:
+                return "System control unavailable."
+            fn = getattr(self.system, "arestart", None) or self.system.restart
+            if asyncio.iscoroutinefunction(fn):
+                await fn()
+            else:
+                await asyncio.to_thread(fn)
+            return "Restart initiated."
+
+        if intent == "system.sleep":
+            if not self.system:
+                return "System control unavailable."
+            fn = getattr(self.system, "asleep", None) or self.system.sleep
+            if asyncio.iscoroutinefunction(fn):
+                await fn()
+            else:
+                await asyncio.to_thread(fn)
+            return "Sleep initiated."
+
+        if intent == "system.lock_screen":
+            if not self.system:
+                return "System control unavailable."
+            fn = getattr(self.system, "alock_screen", None) or self.system.lock_screen
+            if asyncio.iscoroutinefunction(fn):
+                await fn()
+            else:
+                await asyncio.to_thread(fn)
+            return "Screen locked."
+
+        if intent == "system.cancel_shutdown":
+            if not self.system:
+                return "System control unavailable."
+            fn = getattr(self.system, "acancel_shutdown", None) or self.system.cancel_shutdown
+            if asyncio.iscoroutinefunction(fn):
+                await fn()
+            else:
+                await asyncio.to_thread(fn)
+            return "Shutdown cancelled."
 
         return f"Unknown tool intent: {intent}"
