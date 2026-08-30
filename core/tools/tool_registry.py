@@ -25,6 +25,15 @@ except Exception:
 logger = logging.getLogger("ultron-api")
 
 
+class _SilentSpeech:
+    """No-op speech fallback so tools keep working when the TTS engine is
+    unavailable (headless server / missing audio stack). Controllers call
+    speech.speak() for user feedback only; results are still returned."""
+
+    def speak(self, text: str, *args, **kwargs) -> None:
+        logger.debug("[silent-speech] %s", text)
+
+
 class ToolRegistry:
     """Executes tool intents detected by the IntentRouter."""
 
@@ -35,6 +44,8 @@ class ToolRegistry:
                 self.speech = AdvancedSpeechEngine()
             except Exception:
                 self.speech = None
+        if self.speech is None:
+            self.speech = _SilentSpeech()
 
         self.apps = None
         if AppController is not None:

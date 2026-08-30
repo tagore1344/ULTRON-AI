@@ -105,6 +105,37 @@ class ControlController extends ChangeNotifier {
   }
 
   // ==============================================================================
+  // EMERGENCY STOP
+  // ==============================================================================
+
+  /// Halts all host executions instantly via the authenticated REST gateway,
+  /// falling back to the secure authenticated WebSocket channel if REST is
+  /// unreachable. Mirrors backend POST /api/v1/agent/emergency-stop semantics.
+  Future<bool> triggerEmergencyStop() async {
+    try {
+      final response = await apiClient.post("/agent/emergency-stop", {});
+      activeCommandStatus = "idle";
+      activeCommandMessage =
+          response["message"] ?? "Emergency stop processed. System reset to IDLE.";
+      notifyListeners();
+      return true;
+    } catch (_) {
+      // REST unreachable — fall back to the authenticated WS event channel
+      if (wsService.isConnected) {
+        wsService.sendEvent("EMERGENCY_STOP", {});
+        activeCommandStatus = "idle";
+        activeCommandMessage = "Emergency stop transmitted over secure channel.";
+        notifyListeners();
+        return true;
+      }
+      activeCommandStatus = "failed";
+      activeCommandMessage = "Emergency stop failed: gateway unreachable.";
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ==============================================================================
   // WEBSOCKET CONFIRMATION CALLBACKS
   // ==============================================================================
 
@@ -143,6 +174,14 @@ class ControlController extends ChangeNotifier {
       pendingConfirmation = null;
       activeCommandStatus = "rejected";
       activeCommandMessage = "Request expired or was canceled by server.";
+      notifyListeners();
+    }
+
+    // 2.5 Broadcast emergency-stop acknowledgements reset the HUD instantly
+    else if (event.event == "EMERGENCY_STOP_TRIGGERED") {
+      activeCommandStatus = "idle";
+      activeCommandMessage =
+          "EMERGENCY STOP executed by ${event.data["cancelled_by"] ?? "host"}. Runtime reset to IDLE.";
       notifyListeners();
     }
 

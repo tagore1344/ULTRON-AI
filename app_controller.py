@@ -24,6 +24,14 @@ except Exception:
     winreg = None
 
 class AppController:
+    def _speak(self, message):
+        """Speak via the speech engine when available; safe no-op when headless."""
+        if self.speech is not None:
+            try:
+                self.speech.speak(message)
+            except Exception:
+                pass
+
     def __init__(self, speech):
         self.speech   = speech
         self.username = os.environ.get("USERNAME", "")
@@ -386,7 +394,7 @@ class AppController:
                         subprocess.Popen([cmd])
                     except OSError:
                         pass
-                self.speech.speak(f"Opening {key}")
+                self._speak(f"Opening {key}")
                 return True
 
         # ── 2. Windows Store apps ────────────────
@@ -394,7 +402,7 @@ class AppController:
             if key in app_name or app_name in key:
                 try:
                     os.startfile(protocol)
-                    self.speech.speak(f"Opening {key}")
+                    self._speak(f"Opening {key}")
                     return True
                 except OSError:
                     pass
@@ -404,7 +412,7 @@ class AppController:
             if key in app_name or app_name in key:
                 if path and os.path.exists(path):
                     subprocess.Popen([path])
-                    self.speech.speak(f"Opening {key}")
+                    self._speak(f"Opening {key}")
                     return True
 
         # ── 4. Scanned app paths ─────────────────
@@ -412,7 +420,7 @@ class AppController:
             if key in app_name or app_name in key:
                 if path and os.path.exists(path):
                     subprocess.Popen([path])
-                    self.speech.speak(f"Opening {key}")
+                    self._speak(f"Opening {key}")
                     return True
 
         # ── 5. Config apps ───────────────────────
@@ -425,14 +433,14 @@ class AppController:
                     path = matches[0] if matches else path
                 if os.path.exists(path):
                     subprocess.Popen([path])
-                    self.speech.speak(f"Opening {key}")
+                    self._speak(f"Opening {key}")
                     return True
 
         # ── 6. Registry search ───────────────────
         reg_path = self._search_registry(app_name)
         if reg_path:
             subprocess.Popen([reg_path])
-            self.speech.speak(f"Opening {app_name}")
+            self._speak(f"Opening {app_name}")
             return True
 
         # ── 7. Search Start Menu ─────────────────
@@ -464,13 +472,13 @@ class AppController:
                             and app_name in f.lower()):
                         full = os.path.join(root, f)
                         os.startfile(full)
-                        self.speech.speak(
+                        self._speak(
                             f"Opening {f.replace('.lnk','')}"
                         )
                         return True
 
         # Nothing found
-        self.speech.speak(
+        self._speak(
             f"I could not find {app_name}. "
             "Try saying the exact app name."
         )
@@ -499,7 +507,7 @@ class AppController:
             except Exception:
                 pass
 
-        self.speech.speak(
+        self._speak(
             f"Closed {app_name}" if closed
             else f"{app_name} is not running"
         )
@@ -507,7 +515,7 @@ class AppController:
     def switch_to_app(self, app_name: str):
         app_name = app_name.lower()
         if gw is None:
-            self.speech.speak(f"Could not find {app_name} window")
+            self._speak(f"Could not find {app_name} window")
             return False
 
         for w in gw.getAllWindows():
@@ -516,11 +524,11 @@ class AppController:
                     w.activate()
                     time.sleep(0.3)
                     w.activate()
-                    self.speech.speak(f"Switched to {app_name}")
+                    self._speak(f"Switched to {app_name}")
                     return True
                 except Exception:
                     pass
-        self.speech.speak(f"Could not find {app_name} window")
+        self._speak(f"Could not find {app_name} window")
         return False
 
     def take_screenshot(self):
@@ -529,11 +537,11 @@ class AppController:
         if pyautogui is not None:
             try:
                 pyautogui.screenshot().save(name)
-                self.speech.speak("Screenshot saved")
+                self._speak("Screenshot saved")
                 return name
             except Exception:
                 pass
-        self.speech.speak("Screenshot feature unavailable in this environment")
+        self._speak("Screenshot feature unavailable in this environment")
         return name
 
     def list_open_windows(self):
@@ -542,7 +550,7 @@ class AppController:
             windows = [w.title for w in gw.getAllWindows() if w.title.strip()]
         if windows:
             names = ", ".join(windows[:8])
-            self.speech.speak(f"Open windows: {names}")
+            self._speak(f"Open windows: {names}")
         else:
-            self.speech.speak("No open windows found")
+            self._speak("No open windows found")
         return windows

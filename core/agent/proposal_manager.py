@@ -1,4 +1,4 @@
-# core/agent/proposal_manager.py — Phase 9E Cognitive Change-Proposal Lifecycle
+# core/agent/proposal_manager.py â€” Phase 9E Cognitive Change-Proposal Lifecycle
 import os
 import json
 import uuid
@@ -12,7 +12,7 @@ logger = logging.getLogger("ultron-api")
 DB_DIR = "backend/data"
 DB_PATH = os.path.join(DB_DIR, "ultron_context.db")
 
-# Risk taxonomy — mirrors the gateway command classification (docs/ARCHITECTURE.md §4.2)
+# Risk taxonomy â€” mirrors the gateway command classification (docs/ARCHITECTURE.md Â§4.2)
 RISK_SAFE = "SAFE"
 RISK_CONFIRM = "CONFIRMATION_REQUIRED"
 RISK_HIGH = "HIGH_RISK"
@@ -328,6 +328,15 @@ class ProposalManager:
 
         new_status = "APPLIED" if success else "APPLY_FAILED"
         self._set_status(proposal_id, new_status, actor="executor", note=result)
+        # Also persist execution_result so the audit trail is queryable.
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE cognitive_proposals SET execution_result = ? WHERE proposal_id = ?",
+            (result, proposal_id)
+        )
+        conn.commit()
+        conn.close()
         return True, new_status
 
     # ==============================================================================

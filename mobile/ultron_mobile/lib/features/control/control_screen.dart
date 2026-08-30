@@ -40,6 +40,37 @@ class _ControlScreenState extends State<ControlScreen> {
     await controller.submitCommand(name, params);
   }
 
+  void _onEmergencyStopPressed(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: UltronTheme.spaceSurface,
+        title: const Text(
+          "EMERGENCY STOP",
+          style: TextStyle(fontFamily: 'Consolas', color: UltronTheme.rubyRed, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "Halt all active ULTRON executions on the laptop host, release microphone ownership, and reset the system to IDLE?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("CANCEL"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("HALT NOW", style: TextStyle(color: UltronTheme.rubyRed, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final controller = Provider.of<ControlController>(context, listen: false);
+      await controller.triggerEmergencyStop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<ControlController>(context);
@@ -131,6 +162,23 @@ class _ControlScreenState extends State<ControlScreen> {
                     ],
                   ),
                   const SizedBox(height: 30),
+
+                  // --- EMERGENCY STOP (auth-gated on host via safe_commands scope) ---
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: UltronTheme.rubyRed,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.dangerous_outlined),
+                    label: const Text(
+                      "EMERGENCY STOP",
+                      style: TextStyle(fontFamily: 'Consolas', fontWeight: FontWeight.bold, letterSpacing: 2),
+                    ),
+                    onPressed: () => _onEmergencyStopPressed(context),
+                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
