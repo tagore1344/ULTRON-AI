@@ -407,7 +407,7 @@ class AssistantOverlay:
         ctk.set_appearance_mode("dark")
 
         self.root = ctk.CTk()
-        self.root.title("JARVIS")
+        self.root.title("ULTRON")
         self.root.attributes('-topmost', True)
         
         # ═══ TRANSPARENT WINDOW ═══

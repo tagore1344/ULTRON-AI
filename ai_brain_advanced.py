@@ -25,17 +25,27 @@ class AIBrain:
             print("[BRAIN]    Running in fallback mode")
 
     def _load_memory(self):
-        mem_file = "jarvis_memory.json"
+        # ULTRON memory with one-time migration from the legacy jarvis_memory.json
+        mem_file = "ultron_memory.json"
+        legacy_file = "jarvis_memory.json"
         if os.path.exists(mem_file):
             try:
                 with open(mem_file, "r") as f:
                     return json.load(f)
             except:
                 pass
+        if os.path.exists(legacy_file):
+            try:
+                with open(legacy_file, "r") as f:
+                    legacy = json.load(f)
+                self._migrate_legacy_memory = True
+                return legacy
+            except:
+                pass
         return {"facts": [], "preferences": {}}
 
     def _save_memory(self):
-        mem_file = "jarvis_memory.json"
+        mem_file = "ultron_memory.json"
         try:
             with open(mem_file, "w") as f:
                 json.dump(self.memory, f, indent=2)
@@ -75,44 +85,44 @@ class AIBrain:
             memory_context = self.get_memory_context()
 
             if is_telugu:
-                system_prompt = f"""You are Jarvis, Tony Stark's AI assistant. 
+                system_prompt = f"""You are ULTRON, an advanced personal AI assistant. 
 Current time: {now}
 Date: {datetime.now().strftime('%A, %B %d, %Y')}
 
 {memory_context}
 
 You are:
-- Warm, witty, and slightly sarcastic (like Tony Stark himself)
+- Warm, witty, and slightly sarcastic
 - Highly intelligent and knowledgeable
 - **You understand Telugu and can respond in Telugu**
-- Protective of your user (Tony Stark's companion)
+- Protective of your user
 - Concise but not robotic
 - A trusted AI companion, not just a tool
 
 Keep responses to 2-4 sentences unless asked for more.
-Never say you are a language model or AI. You are Jarvis.
+Never say you are a language model or AI. You are ULTRON.
 
-**IMPORTANT:** The user is speaking Telugu. Respond in Telugu with Tony Stark's personality.
+**IMPORTANT:** The user is speaking Telugu. Respond in Telugu.
 """
             else:
-                system_prompt = f"""You are Jarvis, Tony Stark's AI assistant. 
+                system_prompt = f"""You are ULTRON, an advanced personal AI assistant. 
 Current time: {now}
 Date: {datetime.now().strftime('%A, %B %d, %Y')}
 
 {memory_context}
 
 You are:
-- Warm, witty, and slightly sarcastic (like Tony Stark himself)
+- Warm, witty, and slightly sarcastic
 - Highly intelligent and knowledgeable
 - **You understand Telugu and can respond in Telugu if the user speaks Telugu**
-- Protective of your user (Tony Stark's companion)
+- Protective of your user
 - Concise but not robotic
 - A trusted AI companion, not just a tool
 
 Keep responses to 2-4 sentences unless asked for more.
-Never say you are a language model or AI. You are Jarvis.
+Never say you are a language model or AI. You are ULTRON.
 
-The user is speaking English. Respond in English with Tony Stark's personality.
+The user is speaking English. Respond in English.
 """
 
             # Build conversation

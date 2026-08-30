@@ -15,6 +15,8 @@ from speech_engine_advanced import AdvancedSpeechEngine
 from app_controller import AppController
 from system_controller import SystemController
 from wake_word_advanced import AdvancedWakeWordDetector
+from clap_detector import ClapDetector
+from config import CONFIG
 from ai_brain_advanced import AIBrain
 from intent_router import IntentRouter
 from tool_registry import ToolRegistry
@@ -31,7 +33,7 @@ class JarvisWithBrain:
 
         # MEMORY
         self.memory = MemoryEngine()
-        
+
         # UI Reference holder (We pass the instance from main instead)
         self.overlay = None
 
@@ -84,10 +86,10 @@ class JarvisWithBrain:
             # Uses Qt's meta-object engine to safely change properties from a background thread
             from PyQt6.QtCore import QMetaObject, Q_ARG, Qt
             QMetaObject.invokeMethod(
-                self.overlay, 
-                "update_status", 
-                Qt.ConnectionType.QueuedConnection, 
-                Q_ARG(str, text), 
+                self.overlay,
+                "update_status",
+                Qt.ConnectionType.QueuedConnection,
+                Q_ARG(str, text),
                 Q_ARG(str, state)
             )
 
@@ -102,9 +104,17 @@ class JarvisWithBrain:
         # Run speech activation in a background thread to prevent GUI lockup
         threading.Thread(target=self._run_speech_greeting, daemon=True).start()
 
-        # START WAKE DETECTOR
-        self.wake_detector = AdvancedWakeWordDetector(callback=self.on_wake_word)
-        self.wake_detector.start()
+        # START THE CONFIGURED DETECTOR (Stage 2 Mode)
+        wake_mode = CONFIG.get("wake_mode", "wake_word")
+        self.clap_detector = None
+        self.wake_detector = None
+
+        if wake_mode == "clap":
+            self.clap_detector = ClapDetector(callback=self.on_wake_word)
+            self.clap_detector.start()
+        else:
+            self.wake_detector = AdvancedWakeWordDetector(callback=self.on_wake_word)
+            self.wake_detector.start()
 
         self.is_running = True
         print("\n[ULTRON] Running and monitoring audio feed...\n")
@@ -126,6 +136,8 @@ class JarvisWithBrain:
             self.safe_update_overlay("ACCESS DENIED", "listening")
             time.sleep(2)
             self.safe_update_overlay("SYSTEM SECURED", "idle")
+            if self.wake_detector:
+                self.wake_detector.resume()
             return
 
         print("[SECURITY] Biometric match confirmed. Access granted.")
@@ -139,10 +151,16 @@ class JarvisWithBrain:
         if not command:
             self.safe_update_overlay("SYSTEM IDLE", "idle")
             self.speech.speak("I didn't hear a command.")
+            if self.wake_detector:
+                self.wake_detector.resume()
             return
 
         print(f"\n[COMMAND] {command}")
         self.process_command(command)
+
+        # Resume background listening after execution completes
+        if self.wake_detector:
+            self.wake_detector.resume()
 
     # ─────────────────────────────────────
     # PROCESS COMMAND
@@ -196,7 +214,7 @@ class JarvisWithBrain:
             if not executed:
                 print("\n[AI CORE] Thinking...")
                 self.safe_update_overlay("THINKING...", "thinking")
-                
+
                 user_name = self.memory.get_user_name()
                 contextual_prompt = cmd
 
@@ -206,7 +224,7 @@ class JarvisWithBrain:
                 response = self.brain.think(contextual_prompt)
                 self.memory.add_conversation(cmd, response)
                 print(f"\n[ULTRON] {response}")
-                
+
                 self.safe_update_overlay("SPEAKING...", "idle")
                 self.speech.speak(response)
 
@@ -224,5 +242,7 @@ class JarvisWithBrain:
         self.is_running = False
         if self.wake_detector:
             self.wake_detector.stop()
+        if self.clap_detector:
+            self.clap_detector.stop()
         self.safe_update_overlay("OFFLINE", "listening")
         print("[SHUTDOWN] Complete")

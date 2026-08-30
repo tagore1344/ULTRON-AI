@@ -7,8 +7,15 @@ import datetime
 class MemoryEngine:
 
     def __init__(self):
-        self.memory_file = "jarvis_memory.json"
+        # ULTRON memory with one-time migration from the legacy jarvis_memory.json
+        self.memory_file = "ultron_memory.json"
         self.memory = self.load_memory()
+        if not os.path.exists(self.memory_file) and os.path.exists("jarvis_memory.json"):
+            try:
+                with open("jarvis_memory.json", "r", encoding="utf-8") as f:
+                    self.memory = json.load(f)
+            except Exception:
+                pass
 
     # ─────────────────────────────────────
     # LOAD MEMORY
@@ -43,11 +50,11 @@ class MemoryEngine:
     # ─────────────────────────────────────
     # SAVE CONVERSATION
     # ─────────────────────────────────────
-    def add_conversation(self, user, jarvis):
+    def add_conversation(self, user, assistant):
         self.memory["conversations"].append({
             "time": str(datetime.datetime.now()),
             "user": user,
-            "jarvis": jarvis
+            "assistant": assistant
         })
 
         # KEEP LAST 50

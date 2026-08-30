@@ -9,6 +9,7 @@ An advanced AI assistant application built with Python. ULTRON AI features voice
 - **Screen Vision** — Capture and analyze screen content with OCR
 - **System Automation** — Control volume, brightness, media, power, and more
 - **Memory System** — Conversation, session, and vector memory for context
+- **Cognitive Proposals (Phase 9E)** — ULTRON surfaces change-proposals to your phone for review/approval (see `docs/PHASE_9E.md`)
 - **Intent Routing** — Rule-based intent detection for tool execution
 - **Wake Word Detection** — Activate with "Hey ULTRON"
 - **Face ID & Voice ID** — Advanced identity verification
@@ -24,21 +25,28 @@ ULTRON-AI/
 │   ├── memory/            # Memory systems (conversation, session, vector)
 │   └── orchestrator/      # AI orchestration (prompt, model, response, consensus)
 ├── core/                  # Core package
+│   ├── agent/             # Agent runtime: planner, judgment, policy, recovery
 │   ├── brain/             # AI brain (delegates to orchestrator)
+│   ├── context/           # Self/world models, memory manager, long-term goals
+│   ├── evolution/         # Hypothesis engine, experiments, strategy learning
 │   ├── intent/            # Intent detection
+│   ├── neural/            # Neural schema, entity/concept graphs, predictions
 │   ├── speech/            # Speech engine wrapper
-│   └── tools/             # Tool execution registry
+│   ├── tools/             # Canonical tool execution registry
+│   └── update/            # Cryptographically verified self-update pipeline
+├── backend/               # FastAPI gateway (REST + WebSocket) for remote clients
+│   ├── api/routes/        # auth, chat, commands, devices, health, system
+│   ├── security/          # Token service, authentication, authorization
+│   ├── database/          # SQLite device/context persistence
+│   ├── services/          # Brain adapter, command + confirmation services
+│   └── tests/             # Gateway & phase test suites
+├── mobile/                # Flutter companion app + native Android node
 ├── services/              # Service layer
-│   ├── ai_service.py      # AI service
-│   ├── speech_service.py  # Speech service
-│   ├── vision_service.py  # Vision service
-│   └── automation_service.py  # System automation service
-├── tools/                 # Tools
-│   └── app_launcher.py    # App launcher
-├── assistant_engine.py    # Main assistant engine
-├── main.py                # Entry point
-├── run_ultron.py          # Runner script
-└── config.py              # Configuration
+├── tools/                 # Tools (app launcher)
+├── assistant_engine.py    # Main assistant engine (CLI loop)
+├── main.py                # CLI entry point
+├── run_ultron.py          # Desktop voice+overlay entry point (PyQt6)
+└── config.py              # Configuration re-export
 ```
 
 ## 🚀 Installation
@@ -83,18 +91,41 @@ start_ultron.bat
 ### Run tests
 
 ```bash
-python -m pytest ai/test_orchestrator.py ai/test_router.py ai/test_gemini.py test_app_controller.py
+py -m pytest            # Windows (full suite)
+python3 -m pytest       # Linux / macOS
+
+# Fast subset without network calls:
+py -m pytest ai/test_orchestrator_activation.py backend/tests/test_phase2.py
 ```
 
 ## 🧠 AI Providers
 
-| Provider | File | Model |
-|----------|------|-------|
-| Gemini | `ai/agents/gemini_agent.py` | gemini-2.5-flash |
-| OpenAI | `ai/agents/openai_agent.py` | (configurable) |
-| DeepSeek | `ai/agents/deepseek_agent.py` | (configurable) |
+| Provider | File | Model | Role |
+|----------|------|-------|------|
+| Gemini | `ai/agents/gemini_agent.py` | gemini-2.5-flash | Coding / math / technical |
+| OpenAI | `ai/agents/openai_agent.py` | gpt-4.1-mini | General conversation |
+| DeepSeek | `ai/agents/deepseek_agent.py` | deepseek-chat | Cybersecurity / reasoning |
 
-The `AIOrchestrator` selects the best provider based on the prompt content and merges responses.
+Gemini uses the modern `google-genai` SDK by default with a graceful fallback to
+the legacy `google-generativeai` backend. Set `ULTRON_GEMINI_SDK=legacy` to force
+the fallback. OpenAI and DeepSeek use the OpenAI-compatible client (`openai`
+package); DeepSeek points at `https://api.deepseek.com` automatically.
+
+The `AIOrchestrator` routes each prompt to the best-suited provider via
+`ModelSelector`, then automatically cascades through remaining providers when
+the primary fails or its API key is missing (failure-aware fallback chain).
+
+### Consensus modes
+
+Set `ULTRON_CONSENSUS_MODE` in `.env`:
+
+* `fallback` *(default)* — one strategic provider answers per request; failed or
+  unconfigured providers are skipped gracefully.
+* `multi` — every available provider answers; responses are merged by the
+  `ResponseMerger` and consolidated by the `ConsensusEngine`.
+
+Availability probes (`is_*_available()` in each agent) check provider setup
+without network calls, so missing keys never crash the assistant.
 
 ## 🛠️ Configuration
 
