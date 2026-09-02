@@ -1,0 +1,13 @@
+# Build / binary dependencies (re-downloadable, too large for git)
+lib/*.jar
+
+# IDE / tool config
+.vscode/
+.claude/
+
+# Compiled classes
+*.class
+
+# OS files
+Thumbs.db
+Desktop.ini
