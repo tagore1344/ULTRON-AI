@@ -1,4 +1,4 @@
-"""Async agent loop that integrates ULTRON's existing brain and tools."""
+"""Async agent loop that integrates ULTRON's brain, tools, and planner."""
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -11,7 +11,7 @@ from .task_state import TaskState
 
 
 class AsyncAgentLoop:
-    """Plan and execute multi-step goals while preserving existing routing."""
+    """Plan complex goals and delegate execution to the strongest configured agent."""
 
     def __init__(
         self,
@@ -33,13 +33,33 @@ class AsyncAgentLoop:
             return state.errors[-1], state
 
         state.status = "running"
-        outputs: list[str] = []
 
+        # Astra owns the full observe -> reason -> act -> verify loop when an
+        # OpenAI API key is configured. This avoids reducing an agentic model to
+        # one isolated prompt per plan step.
+        if hasattr(self.brain, "act"):
+            state.record_action("agent_execute", {"goal": goal, "steps": len(state.plan)})
+            try:
+                result = await _maybe_await(self.brain.act(goal))
+                text = str(result)
+                state.record_result(text, not text.startswith(("Brain action error:", "Astra stopped")))
+                state.observations.append(text)
+                if state.results and state.results[-1].get("success") is False:
+                    state.fail(text)
+                    return text, state
+                state.current_step = len(state.plan) - 1
+                state.status = "completed"
+                return text, state
+            except Exception as exc:
+                state.fail(str(exc))
+                return "ULTRON stopped after an agent execution failure: " + str(exc), state
+
+        # Compatibility fallback for environments without the autonomous brain.
+        outputs: list[str] = []
         for index, step in enumerate(state.plan):
             state.current_step = index
             state.record_action("execute_step", {"step": step})
             try:
-                # Reuse the existing intent/tool layer for concrete actions.
                 intent_data = self.router.detect(step)
                 if intent_data.get("intent") != "chat":
                     result = await self.tools.execute(intent_data)
@@ -59,3 +79,9 @@ class AsyncAgentLoop:
 
         state.status = "completed"
         return outputs[-1] if outputs else "ULTRON completed the task.", state
+
+
+async def _maybe_await(value: Any) -> Any:
+    if hasattr(value, "__await__"):
+        return await value
+    return value
