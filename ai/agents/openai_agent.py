@@ -1,3 +1,6 @@
+"""OpenAI provider adapter for ULTRON."""
+from __future__ import annotations
+
 import os
 
 try:
@@ -14,7 +17,7 @@ except Exception:
 load_dotenv()
 
 client = None
-if OpenAI is not None:
+if OpenAI is not None and os.getenv("OPENAI_API_KEY"):
     try:
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     except Exception:
@@ -22,25 +25,17 @@ if OpenAI is not None:
 
 
 def ask_openai(prompt: str) -> str:
+    """Ask the configured OpenAI model using the modern Responses API."""
     if client is None:
-        return "OpenAI Error: API dependency is unavailable in this environment."
+        return "OpenAI Error: API dependency or OPENAI_API_KEY is unavailable."
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are ULTRON AI, an advanced AI assistant."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+        response = client.responses.create(
+            model=os.getenv("ULTRON_MODEL", "gpt-6-astra"),
+            reasoning={"effort": os.getenv("ULTRON_REASONING_EFFORT", "high")},
+            instructions="You are ULTRON AI, an advanced, precise, tool-aware assistant.",
+            input=prompt,
         )
-
-        return response.choices[0].message.content
-
-    except Exception as e:
-        return f"OpenAI Error: {str(e)}"
+        return response.output_text
+    except Exception as exc:
+        return f"OpenAI Error: {exc}"
