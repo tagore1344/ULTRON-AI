@@ -1,12 +1,14 @@
 # ULTRON AI
 
-An advanced AI assistant application built with Python. ULTRON AI features voice interaction, screen vision, system automation, multi-provider AI, persistent memory, and an agent execution foundation.
+An advanced AI assistant application built with Python. ULTRON AI combines voice interaction, screen vision, system automation, persistent memory, multi-provider AI, and an autonomous agent runtime.
 
 ## ✨ Features
 
 - **Voice Interaction** — Speech-to-text (Faster-Whisper) and text-to-speech (pyttsx3)
-- **Multi-Provider AI** — Gemini, OpenAI, and DeepSeek agents with an AI orchestrator
-- **Agent Execution** — Goal decomposition, task state, execution, verification, and bounded retries
+- **Frontier Agent Runtime** — GPT-6 Astra reasoning with tool use, web search, coding, testing, and iterative execution
+- **Multi-Provider AI** — Gemini, OpenAI, and DeepSeek compatibility
+- **Goal Execution** — Planning, task state, execution, verification, and bounded retries
+- **Workspace Coding Tools** — Inspect files, edit files, run tests/builds, inspect Git status/diff, and create local commits
 - **Model Routing** — Capability-based routing for general, coding, vision, and future specialist models
 - **Screen Vision** — Capture and analyze screen content with OCR
 - **System Automation** — Control volume, brightness, media, power, and more
@@ -19,25 +21,27 @@ An advanced AI assistant application built with Python. ULTRON AI features voice
 
 ## 🧠 Agent Architecture
 
-Complex requests now enter an explicit loop instead of going directly from prompt to response:
+Complex requests follow an agentic loop rather than a single prompt/response:
 
 ```text
-Goal
-  ↓
-Plan
-  ↓
-Task State
-  ↓
-Execute
-  ↓
-Observe result
-  ↓
-Verify
-  ↓
-Complete / Retry / Fail
+User Goal
+   ↓
+Plan + Task State
+   ↓
+Inspect / Research
+   ↓
+Act with tools
+   ↓
+Observe results
+   ↓
+Run tests / verify
+   ↓
+Diagnose + iterate
+   ↓
+Verified result
 ```
 
-The agent layer is model-agnostic. It can sit above the existing Gemini/OpenAI/DeepSeek providers and can later route work to local or specialist models.
+When GPT-6 Astra is configured, it is the primary reasoning engine for complex work. OpenAI describes Astra as its most capable model for end-to-end work across coding, computer use, browsing, science, and professional workflows.
 
 ### Agent modules
 
@@ -49,11 +53,32 @@ core/agent/
 ├── model_router.py        # Capability-based model selection
 ├── verifier.py            # Output verification primitives
 ├── agent_loop.py          # Synchronous execution core
-├── async_agent_loop.py    # Existing ULTRON tools + async agent execution
+├── async_agent_loop.py    # ULTRON agent integration
+├── astra_agent.py         # GPT-6 Astra Responses API + workspace tools
 └── test_agent_core.py     # Agent-core tests
 ```
 
-`AssistantEngine` remains the entry point. Existing direct tool intents continue to use the existing ToolRegistry, while complex chat goals are routed through the agent loop.
+## ⚡ Enable GPT-6 Astra
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Set your API key in the environment or `.env`:
+
+```text
+OPENAI_API_KEY=your_key_here
+ULTRON_MODEL=gpt-6-astra
+ULTRON_REASONING_EFFORT=high
+ULTRON_USE_ASTRA=1
+ULTRON_WORKSPACE=.
+```
+
+`ULTRON_WORKSPACE` is the root directory available to the autonomous coding tools. File operations are constrained to that workspace. The agent can inspect and modify files and run development commands there, but it does not push Git changes remotely.
+
+GPT-6 Astra supports the Responses API with function calling, web search, file search, code interpreter, hosted shell, apply patch, computer use, MCP, and other tools.
 
 ## 📁 Project Structure
 
@@ -61,7 +86,7 @@ core/agent/
 ULTRON-AI/
 ├── ai/                    # AI providers, memory, and orchestration
 ├── core/
-│   ├── agent/             # Planning, state, routing, verification
+│   ├── agent/             # Planning, state, routing, verification, Astra
 │   ├── brain/             # AI brain
 │   ├── intent/            # Intent detection
 │   ├── speech/            # Speech engine
@@ -96,34 +121,45 @@ Or on Windows:
 start_ultron.bat
 ```
 
+Once `OPENAI_API_KEY` is configured, a request such as:
+
+```text
+Build the missing feature, run the tests, fix any failures, and verify it.
+```
+
+can be handled as an autonomous software-engineering task instead of a single chat response.
+
 ## 🧪 Tests
 
-Run the existing tests plus the new agent-core coverage:
+Run the agent-core tests:
 
 ```bash
 python -m pytest core/agent/test_agent_core.py
 ```
 
+A live Astra integration test should only be run in an environment with `OPENAI_API_KEY` and a disposable/test workspace.
+
 ## 🧠 AI Providers
 
-| Provider | File | Model |
-|----------|------|-------|
-| Gemini | `ai/agents/gemini_agent.py` | gemini-2.5-flash |
-| OpenAI | `ai/agents/openai_agent.py` | configurable |
-| DeepSeek | `ai/agents/deepseek_agent.py` | configurable |
+| Provider | File | Role |
+|----------|------|------|
+| OpenAI | `ai/agents/openai_agent.py` | GPT-6 Astra reasoning |
+| Gemini | `ai/agents/gemini_agent.py` | Compatibility/fallback |
+| DeepSeek | `ai/agents/deepseek_agent.py` | Compatibility/fallback |
 
-The existing `AIOrchestrator` remains intact. The new agent layer is an orchestration layer above it, preserving the project's current architecture rather than replacing it.
+## 🔭 Roadmap toward Astra-class capability
 
-## 🔭 Roadmap toward a frontier-style agent
+1. **Agent Core — implemented:** planner, task state, model routing, verification, bounded retries.
+2. **Autonomous coding — implemented foundation:** workspace inspection, file editing, terminal/test execution, Git status/diff/commit, iterative tool calls.
+3. **Persistent agent memory:** project knowledge, episodic execution history, searchable task notes, context compaction.
+4. **Computer-use agent:** screen observation, mouse/keyboard actions, application workflows, browser QA.
+5. **Specialist agents:** architect, coder, tester, researcher, reviewer with shared task state.
+6. **Evaluation harness:** benchmark ULTRON on coding, browser, computer-use, research, and recovery tasks.
+7. **Improvement lab:** benchmark → propose change → sandbox → verify → human approval → deploy.
 
-1. **Agent Core — implemented:** planner, task state, model router, verification, bounded retry loop.
-2. **Real coding agent:** repository inspection, terminal execution, tests, patching, debugging, and Git workflows.
-3. **Persistent agent memory:** project knowledge, episodic execution history, and searchable task notes.
-4. **Computer-use agent:** screen observation, mouse/keyboard actions, and application workflows.
-5. **Multi-agent system:** architect, coder, tester, researcher, and reviewer roles.
-6. **Improvement lab:** benchmark → propose change → sandbox → verify → human approval → deploy.
+ULTRON is an agent system, not a recreation of the GPT-6 Astra foundation model. Matching Astra's underlying intelligence would require frontier-scale model training; the practical path is to make ULTRON an Astra-class orchestration, tool-use, memory, verification, and computer-control system around strong models.
 
-The improvement lab must remain sandboxed and approval-gated; ULTRON should not silently rewrite and deploy its own production code.
+The improvement lab remains sandboxed and approval-gated. Autonomous execution is powerful, but production deployment and self-modification must remain explicitly controlled.
 
 ## 📄 License
 
