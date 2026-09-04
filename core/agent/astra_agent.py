@@ -1,10 +1,11 @@
 """Astra-class agent kernel for ULTRON.
 
-Uses the OpenAI Responses API as the reasoning engine and gives it a small,
-observable local workspace tool surface for autonomous software work.
+Uses the OpenAI Responses API as the reasoning engine and exposes a small,
+observable workspace tool surface for autonomous software work.
 """
 from __future__ import annotations
 
+import difflib
 import json
 import os
 import subprocess
@@ -38,7 +39,7 @@ class AstraAgent:
         return candidate
 
     def _run_shell(self, command: str, timeout: int = 30) -> dict[str, Any]:
-        """Run a command inside the configured workspace with a hard timeout."""
+        """Run a command inside the workspace with a hard timeout."""
         result = subprocess.run(
             command,
             cwd=self.workspace,
@@ -58,9 +59,10 @@ class AstraAgent:
             path = self._safe_path(args.get("path", "."))
             if not path.is_dir():
                 raise ValueError("Not a directory: " + str(args.get("path", ".")))
-            entries = []
-            for item in sorted(path.iterdir(), key=lambda p: p.name.lower())[:500]:
-                entries.append({"name": item.name, "type": "dir" if item.is_dir() else "file"})
+            entries = [
+                {"name": item.name, "type": "dir" if item.is_dir() else "file"}
+                for item in sorted(path.iterdir(), key=lambda p: p.name.lower())[:500]
+            ]
             return {"path": str(path.relative_to(self.workspace)), "entries": entries}
 
         if name == "workspace_read":
@@ -70,11 +72,48 @@ class AstraAgent:
             limit = max(1, min(int(args.get("max_chars", 30000)), 100000))
             return {"path": args["path"], "content": path.read_text(encoding="utf-8")[:limit]}
 
+        if name == "workspace_find":
+            root = self._safe_path(args.get("path", "."))
+            needle = str(args["query"]).lower()
+            if not root.is_dir():
+                raise ValueError("Not a directory: " + str(args.get("path", ".")))
+            matches: list[dict[str, Any]] = []
+            ignored = {".git", ".venv", "venv", "node_modules", "__pycache__"}
+            for path in root.rglob("*"):
+                if any(part in ignored for part in path.parts) or not path.is_file():
+                    continue
+                try:
+                    text = path.read_text(encoding="utf-8")
+                except (UnicodeDecodeError, OSError):
+                    continue
+                if needle in text.lower():
+                    lines = [i + 1 for i, line in enumerate(text.splitlines()) if needle in line.lower()]
+                    matches.append({"path": str(path.relative_to(self.workspace)), "lines": lines[:20]})
+                if len(matches) >= 100:
+                    break
+            return {"query": args["query"], "matches": matches}
+
         if name == "workspace_write":
             path = self._safe_path(args["path"])
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(args.get("content", ""), encoding="utf-8")
             return {"path": args["path"], "written": True, "bytes": path.stat().st_size}
+
+        if name == "workspace_patch":
+            path = self._safe_path(args["path"])
+            if not path.is_file():
+                raise ValueError("Not a file: " + args["path"])
+            old = path.read_text(encoding="utf-8")
+            expected = args["expected"]
+            if expected not in old:
+                raise ValueError("Expected text was not found; refusing to patch the file.")
+            new = old.replace(expected, args.get("replacement", ""), 1)
+            path.write_text(new, encoding="utf-8")
+            diff = "".join(difflib.unified_diff(
+                old.splitlines(True), new.splitlines(True),
+                fromfile=args["path"], tofile=args["path"],
+            ))
+            return {"path": args["path"], "patched": True, "diff": diff[-20000:]}
 
         if name == "workspace_shell":
             return self._run_shell(args["command"], args.get("timeout", 30))
@@ -91,19 +130,65 @@ class AstraAgent:
                 raise ValueError("Commit message cannot be empty.")
             return self._run_shell("git add -A && git commit -m " + json.dumps(message), 60)
 
+        if name == "git_branch":
+            return self._run_shell("git branch --show-current && git branch --list", 30)
+
         raise ValueError("Unknown Astra tool: " + name)
 
     @staticmethod
     def _tools() -> list[dict[str, Any]]:
         return [
             {"type": "web_search"},
-            {"type": "function", "name": "workspace_list", "description": "List files in the project workspace.", "parameters": {"type": "object", "properties": {"path": {"type": "string"}}, "required": []}},
-            {"type": "function", "name": "workspace_read", "description": "Read a UTF-8 text file from the project workspace.", "parameters": {"type": "object", "properties": {"path": {"type": "string"}, "max_chars": {"type": "integer"}}, "required": ["path"]}},
-            {"type": "function", "name": "workspace_write", "description": "Create or replace a UTF-8 text file in the project workspace.", "parameters": {"type": "object", "properties": {"path": {"type": "string"}, "content": {"type": "string"}}, "required": ["path", "content"]}},
-            {"type": "function", "name": "workspace_shell", "description": "Run a shell command inside the project workspace. Use for tests, builds, linters, and diagnostics.", "parameters": {"type": "object", "properties": {"command": {"type": "string"}, "timeout": {"type": "integer"}}, "required": ["command"]}},
-            {"type": "function", "name": "git_status", "description": "Inspect git status and current branch.", "parameters": {"type": "object", "properties": {}, "required": []}},
-            {"type": "function", "name": "git_diff", "description": "Inspect the current git diff.", "parameters": {"type": "object", "properties": {}, "required": []}},
-            {"type": "function", "name": "git_commit", "description": "Commit completed workspace changes. Do not push or publish changes.", "parameters": {"type": "object", "properties": {"message": {"type": "string"}}, "required": ["message"]}},
+            {
+                "type": "function", "name": "workspace_list",
+                "description": "List files in the project workspace.",
+                "parameters": {"type": "object", "properties": {"path": {"type": "string"}}, "required": []},
+            },
+            {
+                "type": "function", "name": "workspace_read",
+                "description": "Read a UTF-8 text file from the project workspace.",
+                "parameters": {"type": "object", "properties": {"path": {"type": "string"}, "max_chars": {"type": "integer"}}, "required": ["path"]},
+            },
+            {
+                "type": "function", "name": "workspace_find",
+                "description": "Search text across project files, excluding VCS and dependency directories.",
+                "parameters": {"type": "object", "properties": {"query": {"type": "string"}, "path": {"type": "string"}}, "required": ["query"]},
+            },
+            {
+                "type": "function", "name": "workspace_write",
+                "description": "Create or replace a UTF-8 text file in the project workspace.",
+                "parameters": {"type": "object", "properties": {"path": {"type": "string"}, "content": {"type": "string"}}, "required": ["path", "content"]},
+            },
+            {
+                "type": "function", "name": "workspace_patch",
+                "description": "Safely patch one exact text occurrence in a file and return the resulting diff.",
+                "parameters": {"type": "object", "properties": {"path": {"type": "string"}, "expected": {"type": "string"}, "replacement": {"type": "string"}}, "required": ["path", "expected", "replacement"]},
+            },
+            {
+                "type": "function", "name": "workspace_shell",
+                "description": "Run a shell command inside the project workspace for tests, builds, linters, and diagnostics.",
+                "parameters": {"type": "object", "properties": {"command": {"type": "string"}, "timeout": {"type": "integer"}}, "required": ["command"]},
+            },
+            {
+                "type": "function", "name": "git_status",
+                "description": "Inspect git status and current branch.",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+            {
+                "type": "function", "name": "git_diff",
+                "description": "Inspect the current git diff.",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+            {
+                "type": "function", "name": "git_branch",
+                "description": "Inspect the current branch and local branches.",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+            {
+                "type": "function", "name": "git_commit",
+                "description": "Commit completed workspace changes. Do not push or publish changes.",
+                "parameters": {"type": "object", "properties": {"message": {"type": "string"}}, "required": ["message"]},
+            },
         ]
 
     def run(self, goal: str) -> str:
@@ -112,10 +197,13 @@ class AstraAgent:
 
         instructions = (
             "You are ULTRON's autonomous software agent. Work toward the user's goal "
-            "using the available tools. Inspect before editing. Make the smallest correct "
-            "changes, run relevant tests after changes, diagnose failures, and iterate. "
-            "Never claim success without verification. Stay inside the workspace. "
-            "Do not push to remote repositories. Summarize changes and verification at the end."
+            "using the available tools. Inspect before editing. Prefer workspace_patch "
+            "for targeted changes and workspace_write only when creating/replacing a file "
+            "is justified. Make the smallest correct changes, run relevant tests after "
+            "changes, diagnose failures, and iterate. Never claim success without verification. "
+            "Stay inside the workspace. Do not push to remote repositories. Do not delete "
+            "the project or its history. Preserve existing architecture unless a change is "
+            "required. Summarize changes and verification at the end."
         )
         response = self.client.responses.create(
             model=self.model,
