@@ -8,9 +8,8 @@ from core.agent.async_agent_loop import AsyncAgentLoop
 
 
 class AssistantEngine:
-    """Top-level ULTRON runtime with backward-compatible agent execution."""
+    """Top-level ULTRON runtime with direct tools and an autonomous agent path."""
 
-    # Explicit signals for tasks that benefit from planning and verification.
     _AGENT_SIGNALS = (
         "build ", "create ", "develop ", "implement ", "debug ",
         "fix ", "refactor ", "analyze ", "research ", "design ",
@@ -22,6 +21,7 @@ class AssistantEngine:
         self.speech = SpeechEngine()
         self.router = IntentRouter()
         self.tools = ToolRegistry()
+        # Retained for compatibility with the existing planner/state tests.
         self.agent = AsyncAgentLoop(
             brain=self.brain,
             tools=self.tools,
@@ -38,12 +38,16 @@ class AssistantEngine:
         intent_data = self.router.detect(user_input)
         print(f"[INTENT] {intent_data}")
 
+        # Preserve the fast, deterministic path for simple machine actions.
         if intent_data.get("intent") != "chat":
             return await self.tools.execute(intent_data)
 
+        # Complex goals go to the real tool-using agent as one coherent task.
+        # This preserves the full goal across inspection, editing, testing and repair
+        # instead of splitting it into isolated brain calls.
         if self._should_agent(user_input, intent_data):
-            response, state = await self.agent.run(user_input)
-            print(f"[AGENT] task={state.task_id} status={state.status} steps={len(state.plan)}")
+            response = self.brain.act(user_input)
+            print("[AGENT] autonomous goal execution completed")
             return response
 
         return self.brain.think(user_input)
