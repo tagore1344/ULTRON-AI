@@ -19,7 +19,11 @@ void main() {
       };
 
       final event = WsEvent.fromJson(jsonPayload);
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> feature/astra-class-agent-core
       assert(event.event == "CONNECTION_ESTABLISHED");
       assert(event.eventId == "evt_abc123");
       assert(event.timestamp == "2026-08-11T12:00:00Z");

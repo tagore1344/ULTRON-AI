@@ -28,7 +28,11 @@ def registered_token_and_device():
     """Pair a test device and return the raw bearer token and device ID."""
     sess_resp = client.post("/api/v1/auth/pairing-session")
     pin = sess_resp.json()["pairing_code"]
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     pair_resp = client.post("/api/v1/auth/pair", json={
         "pairing_code": pin,
         "device_name": "Phase 4 Test Device",
@@ -53,6 +57,7 @@ def test_websocket_ticket_handshake_success(registered_token_and_device):
     """Verify that clients can exchange access tokens for short-lived tickets to connect safely without URL leaks."""
     token, device_id = registered_token_and_device
     auth_headers = {"Authorization": f"Bearer {token}"}
+<<<<<<< HEAD
     
     # 1. Request short-lived single-use ticket
     ticket_resp = client.post("/api/v1/auth/ws-ticket", headers=auth_headers)
@@ -60,12 +65,25 @@ def test_websocket_ticket_handshake_success(registered_token_and_device):
     
     ticket = ticket_resp.json()["ticket"]
     
+=======
+
+    # 1. Request short-lived single-use ticket
+    ticket_resp = client.post("/api/v1/auth/ws-ticket", headers=auth_headers)
+    assert ticket_resp.status_code == 201
+
+    ticket = ticket_resp.json()["ticket"]
+
+>>>>>>> feature/astra-class-agent-core
     # 2. Connect to WS using the ticket (Succeeds)
     with client.websocket_connect(f"/ws?ticket={ticket}") as websocket:
         handshake = websocket.receive_json()
         assert handshake["event"] == "CONNECTION_ESTABLISHED"
         assert handshake["device_id"] == device_id
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 3. Attempt to reconnect with the same ticket (fails because single-use)
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect(f"/ws?ticket={ticket}") as websocket:
@@ -81,7 +99,11 @@ async def test_confirmation_approval_direct(registered_token_and_device):
     """Verify that submitting an APPROVED decision on a pending request wakes up and completes successfully."""
     _, device_id = registered_token_and_device
     cmd_id = "cmd_test_app"
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 1. Spawn create_and_await_confirmation as a task so we can interact with it concurrently
     task = asyncio.create_task(
         confirmation_service.create_and_await_confirmation(
@@ -92,6 +114,7 @@ async def test_confirmation_approval_direct(registered_token_and_device):
             timeout_seconds=5.0
         )
     )
+<<<<<<< HEAD
     
     # Yield control to allow the session setup inside pending_requests
     await asyncio.sleep(0.01)
@@ -100,6 +123,16 @@ async def test_confirmation_approval_direct(registered_token_and_device):
     assert len(confirmation_service.pending_requests) == 1
     req_id = list(confirmation_service.pending_requests.keys())[0]
     
+=======
+
+    # Yield control to allow the session setup inside pending_requests
+    await asyncio.sleep(0.01)
+
+    # Check session created
+    assert len(confirmation_service.pending_requests) == 1
+    req_id = list(confirmation_service.pending_requests.keys())[0]
+
+>>>>>>> feature/astra-class-agent-core
     # 2. Submit APPROVED response
     success = confirmation_service.submit_decision(
         request_id=req_id,
@@ -108,7 +141,11 @@ async def test_confirmation_approval_direct(registered_token_and_device):
         decision="approved"
     )
     assert success is True
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 3. Wait for approval and confirm results
     approved, reason = await task
     assert approved is True
@@ -120,7 +157,11 @@ async def test_confirmation_rejection_direct(registered_token_and_device):
     """Verify that submitting a REJECTED decision cancels execution."""
     _, device_id = registered_token_and_device
     cmd_id = "cmd_test_app"
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     task = asyncio.create_task(
         confirmation_service.create_and_await_confirmation(
             command_id=cmd_id,
@@ -130,10 +171,17 @@ async def test_confirmation_rejection_direct(registered_token_and_device):
             timeout_seconds=5.0
         )
     )
+<<<<<<< HEAD
     
     await asyncio.sleep(0.01)
     req_id = list(confirmation_service.pending_requests.keys())[0]
     
+=======
+
+    await asyncio.sleep(0.01)
+    req_id = list(confirmation_service.pending_requests.keys())[0]
+
+>>>>>>> feature/astra-class-agent-core
     # Submit REJECTED response
     success = confirmation_service.submit_decision(
         request_id=req_id,
@@ -142,7 +190,11 @@ async def test_confirmation_rejection_direct(registered_token_and_device):
         decision="rejected"
     )
     assert success is True
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     approved, reason = await task
     assert approved is False
     assert reason == "Rejected"
@@ -152,7 +204,11 @@ async def test_confirmation_rejection_direct(registered_token_and_device):
 async def test_confirmation_expiration_timeout(registered_token_and_device):
     """Verify that confirmations expire dynamically and return errors on timeout."""
     _, device_id = registered_token_and_device
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # Trigger command_service with a fast 0.1-second timeout
     res_task = asyncio.create_task(
         command_service.execute_command(
@@ -162,10 +218,17 @@ async def test_confirmation_expiration_timeout(registered_token_and_device):
             timeout_seconds=0.1
         )
     )
+<<<<<<< HEAD
     
     # Allow 0.2 seconds for timeout trigger
     await asyncio.sleep(0.2)
     
+=======
+
+    # Allow 0.2 seconds for timeout trigger
+    await asyncio.sleep(0.2)
+
+>>>>>>> feature/astra-class-agent-core
     # Wait for the task to finish
     result = await res_task
     assert result["success"] is False
@@ -178,7 +241,11 @@ async def test_duplicate_or_invalid_confirmation_rejections(registered_token_and
     """Verify that validation checks intercept invalid or duplicate decisions securely."""
     _, device_id = registered_token_and_device
     cmd_id = "cmd_test_app"
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     task = asyncio.create_task(
         confirmation_service.create_and_await_confirmation(
             command_id=cmd_id,
@@ -190,19 +257,31 @@ async def test_duplicate_or_invalid_confirmation_rejections(registered_token_and
     )
     await asyncio.sleep(0.01)
     req_id = list(confirmation_service.pending_requests.keys())[0]
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 1. Invalid decision payload (rejected)
     invalid_success = confirmation_service.submit_decision(
         request_id=req_id, command_id=cmd_id, device_id=device_id, decision="hack_attempt"
     )
     assert invalid_success is False
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 2. Invalid command ID (rejected)
     invalid_cmd = confirmation_service.submit_decision(
         request_id=req_id, command_id="fake_cmd", device_id=device_id, decision="approved"
     )
     assert invalid_cmd is False
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 3. Invalid device ID (rejected)
     invalid_dev = confirmation_service.submit_decision(
         request_id=req_id, command_id=cmd_id, device_id="fake_dev", decision="approved"

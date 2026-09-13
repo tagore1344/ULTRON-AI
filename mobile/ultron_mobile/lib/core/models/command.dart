@@ -18,7 +18,11 @@ class CommandResult {
   factory CommandResult.fromJson(Map<String, dynamic> json) {
     final resultObj = json['result'] ?? {};
     final errorObj = json['error'] ?? {};
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     return CommandResult(
       success: json['success'] ?? false,
       commandId: json['command_id'] ?? '',

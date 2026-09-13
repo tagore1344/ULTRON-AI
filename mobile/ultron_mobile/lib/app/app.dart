@@ -7,6 +7,10 @@ import 'package:ultron_mobile/features/pairing/pairing_screen.dart';
 import 'package:ultron_mobile/features/home/home_screen.dart';
 import 'package:ultron_mobile/features/chat/chat_screen.dart';
 import 'package:ultron_mobile/features/control/control_screen.dart';
+<<<<<<< HEAD
+=======
+import 'package:ultron_mobile/features/proposals/proposals_screen.dart';
+>>>>>>> feature/astra-class-agent-core
 
 class UltronApp extends StatelessWidget {
   const UltronApp({super.key});
@@ -51,6 +55,10 @@ class _NavigationScaffoldState extends State<NavigationScaffold> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const ChatScreen(),
+<<<<<<< HEAD
+=======
+    const ProposalsScreen(),
+>>>>>>> feature/astra-class-agent-core
     const ControlScreen(),
   ];
 
@@ -88,6 +96,14 @@ class _NavigationScaffoldState extends State<NavigationScaffold> {
               label: "CHAT",
             ),
             BottomNavigationBarItem(
+<<<<<<< HEAD
+=======
+              icon: Icon(Icons.fact_check_outlined),
+              activeIcon: Icon(Icons.fact_check, color: UltronTheme.cyanAccent),
+              label: "REVIEW",
+            ),
+            BottomNavigationBarItem(
+>>>>>>> feature/astra-class-agent-core
               icon: Icon(Icons.tune_outlined),
               activeIcon: Icon(Icons.tune, color: UltronTheme.cyanAccent),
               label: "CONTROL",

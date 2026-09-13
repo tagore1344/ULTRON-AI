@@ -17,7 +17,11 @@ class ApiClient {
       "Content-Type": "application/json",
       "Accept": "application/json",
     };
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     final token = await storage.loadToken();
     if (token != null && token.isNotEmpty) {
       headers["Authorization"] = "Bearer $token";

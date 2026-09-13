@@ -10,6 +10,10 @@ import 'package:ultron_mobile/core/storage/secure_storage_service.dart';
 import 'package:ultron_mobile/features/connection/connection_controller.dart';
 import 'package:ultron_mobile/features/chat/chat_controller.dart';
 import 'package:ultron_mobile/features/control/control_controller.dart';
+<<<<<<< HEAD
+=======
+import 'package:ultron_mobile/features/proposals/proposal_controller.dart';
+>>>>>>> feature/astra-class-agent-core
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +21,11 @@ void main() {
   // 1. Instantiate Core Subsystem Singletons
   final config = AppConfig();
   final storage = SecureStorageService();
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> feature/astra-class-agent-core
   final apiClient = ApiClient(config: config, storage: storage);
   final wsService = WebSocketService(config: config, apiClient: apiClient);
 
@@ -43,6 +51,22 @@ void main() {
             wsService: wsService,
           ),
         ),
+<<<<<<< HEAD
+=======
+        ChangeNotifierProxyProvider<ConnectionController, ProposalController>(
+          create: (context) => ProposalController(
+            apiClient: apiClient,
+            wsService: wsService,
+            connection: context.read<ConnectionController>(),
+          ),
+          update: (context, connection, previous) =>
+              previous ?? ProposalController(
+                apiClient: apiClient,
+                wsService: wsService,
+                connection: connection,
+              ),
+        ),
+>>>>>>> feature/astra-class-agent-core
       ],
       child: const UltronApp(),
     ),

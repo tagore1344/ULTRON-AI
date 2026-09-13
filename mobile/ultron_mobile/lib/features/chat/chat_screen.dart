@@ -17,7 +17,11 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> feature/astra-class-agent-core
   // Real Android Speech-to-Text Service Instance (Least Privilege Principle)
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;

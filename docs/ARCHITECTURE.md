@@ -92,7 +92,11 @@ The mobile client and any other remote clients must authorize requests using sta
 ```http
 Authorization: Bearer <access_token>
 ```
+<<<<<<< HEAD
 *   **Token Protection:** To prevent leaks of critical API keys or raw tokens, **the server never stores raw authentication tokens in plaintext**. 
+=======
+*   **Token Protection:** To prevent leaks of critical API keys or raw tokens, **the server never stores raw authentication tokens in plaintext**.
+>>>>>>> feature/astra-class-agent-core
 *   **Verification:** The SQLite device registry stores a secure hash of the token (`SHA-256` or equivalent). When a client sends a token, the API hashes it and compares it with the database.
 *   **Token Revocation:** Tokens can be instantly revoked by updating the `revoked` flag in the SQLite registry:
 ```

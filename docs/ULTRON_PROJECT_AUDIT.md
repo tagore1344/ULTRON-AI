@@ -78,7 +78,11 @@ The system operates with a deep array of dependencies that fall into specific co
 Before commencing backend API development, we must acknowledge and address several architectural anomalies:
 
 1.  **Dueling Core Registries (Code Duplication):**
+<<<<<<< HEAD
     *   *The Problem:* `tool_registry.py` (root level) vs `core/tools/tool_registry.py` are distinct duplicates. 
+=======
+    *   *The Problem:* `tool_registry.py` (root level) vs `core/tools/tool_registry.py` are distinct duplicates.
+>>>>>>> feature/astra-class-agent-core
     *   *Strategic Unification Plan:* Rather than keeping both permanently, **`core/tools/tool_registry.py` is established as the canonical Single Source of Truth**. We will preserve backward compatibility with the old root-level registry temporarily by replacing its logic with a thin routing wrapper that delegates calls directly back to the canonical `core/tools/tool_registry.py`. This ensures long-term codebase maintainability.
 2.  **Synchronous Subprocess Blocking:**
     *   `app_controller.py` and `system_controller.py` run many native OS/process invocations. Running these synchronously on a FastAPI event-loop might lead to slight latency issues on the WebSocket if the OS is slow to launch an application. These will be guarded gracefully.

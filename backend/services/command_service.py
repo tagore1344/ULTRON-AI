@@ -71,6 +71,19 @@ class CommandService:
         elif cmd == "open_website":
             target = parameters.get("url", "")
             return "app.open", target
+<<<<<<< HEAD
+=======
+        elif cmd == "shutdown":
+            return "system.shutdown", ""
+        elif cmd == "restart":
+            return "system.restart", ""
+        elif cmd == "sleep":
+            return "system.sleep", ""
+        elif cmd == "lock_screen":
+            return "system.lock_screen", ""
+        elif cmd == "cancel_shutdown":
+            return "system.cancel_shutdown", ""
+>>>>>>> feature/astra-class-agent-core
 
         return "chat", ""
 
@@ -116,7 +129,11 @@ class CommandService:
         # 4. Confirmation Required Flow
         if security_level == SecurityLevel.CONFIRMATION_REQUIRED:
             logger.info("COMMAND_PENDING_CONFIRMATION %s - Awaiting client response...", command_id)
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> feature/astra-class-agent-core
             # Non-blocking async wait for mobile approval
             approved, reason = await confirmation_service.create_and_await_confirmation(
                 command_id=command_id,
@@ -125,7 +142,11 @@ class CommandService:
                 parameters=parameters,
                 timeout_seconds=timeout_seconds
             )
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> feature/astra-class-agent-core
             if not approved:
                 logger.warning("COMMAND_REJECTED %s - Confirmation failed: %s", command_id, reason)
                 return {
@@ -137,7 +158,11 @@ class CommandService:
                         "message": f"Command confirmation was not approved. Reason: {reason}."
                     }
                 }
+<<<<<<< HEAD
                 
+=======
+
+>>>>>>> feature/astra-class-agent-core
             # 5. RE-VALIDATION BEFORE EXECUTION (Critical Safety Requirement)
             device_data = device_repo.get_device_by_id(device_id)
             if not device_data or device_data.get("revoked", False):
@@ -151,7 +176,11 @@ class CommandService:
                         "message": "Access denied. Device revoked during confirmation window."
                     }
                 }
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> feature/astra-class-agent-core
             logger.info("COMMAND_AUTHORIZED %s - Post-confirmation validation checks succeeded.", command_id)
         else:
             logger.info("COMMAND_AUTHORIZED %s", command_id)
@@ -178,7 +207,11 @@ class CommandService:
                 "intent": intent,
                 "target": target
             })
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> feature/astra-class-agent-core
             logger.info("COMMAND_COMPLETED %s", command_id)
             return {
                 "success": True,

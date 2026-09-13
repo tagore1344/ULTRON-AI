@@ -6,4 +6,15 @@ __pycache__/
 vosk-model/
 face_model.pkl
 backend/data/*.db
+<<<<<<< HEAD
 backend/data/*.db-journal
+=======
+backend/data/*.db-journal
+voice_profile.npy
+active_release.json
+
+# Local Android/Gradle build artifacts
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/local.properties
+>>>>>>> feature/astra-class-agent-core

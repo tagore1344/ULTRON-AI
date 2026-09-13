@@ -25,22 +25,37 @@ class CommandRequest(BaseModel):
     @classmethod
     def block_unauthorized_commands(cls, v: str) -> str:
         command_clean = v.lower().strip()
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> feature/astra-class-agent-core
         # Explicit blocklist of dangerous raw interpreters
         # Check for exact matches to avoid partial matching errors on short strings like "sh" in "shutdown"
         forbidden_interpreters = {
             "python", "powershell", "sh", "bash", "cmd", "cmd.exe", "subprocess", "eval", "exec"
         }
+<<<<<<< HEAD
         
         if command_clean in forbidden_interpreters:
             raise ValueError(f"Direct interpreter execution '{v}' is strictly prohibited.")
             
+=======
+
+        if command_clean in forbidden_interpreters:
+            raise ValueError(f"Direct interpreter execution '{v}' is strictly prohibited.")
+
+>>>>>>> feature/astra-class-agent-core
         # Check dangerous sub-phrases
         dangerous_substrings = ["os.system", "subprocess.popen", "subprocess.run"]
         for substring in dangerous_substrings:
             if substring in command_clean:
                 raise ValueError(f"Command execution of raw shell phrase '{v}' is strictly prohibited.")
+<<<<<<< HEAD
                 
+=======
+
+>>>>>>> feature/astra-class-agent-core
         return command_clean
 
 

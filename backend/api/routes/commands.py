@@ -30,12 +30,20 @@ async def post_command(
             payload.parameters,
             device.device_id
         )
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> feature/astra-class-agent-core
         # If the service explicitly rejected or failed the command, return mapped HTTP status codes directly as JSONResponses
         if not execution_result.get("success", False):
             err_details = execution_result.get("error", {})
             err_code = err_details.get("code")
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> feature/astra-class-agent-core
             if err_code == "COMMAND_NOT_ALLOWED":
                 return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=execution_result)
             elif err_code in ("HIGH_RISK_COMMAND_REQUIRES_AUTHORIZATION", "DEVICE_REVOKED"):
@@ -46,7 +54,11 @@ async def post_command(
                 return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=execution_result)
 
         return CommandResponse(**execution_result)
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> feature/astra-class-agent-core
     except Exception as e:
         logger.error("Command router transaction exception: %s", e, exc_info=True)
         return JSONResponse(

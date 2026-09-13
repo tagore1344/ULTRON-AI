@@ -105,6 +105,40 @@ class ControlController extends ChangeNotifier {
   }
 
   // ==============================================================================
+<<<<<<< HEAD
+=======
+  // EMERGENCY STOP
+  // ==============================================================================
+
+  /// Halts all host executions instantly via the authenticated REST gateway,
+  /// falling back to the secure authenticated WebSocket channel if REST is
+  /// unreachable. Mirrors backend POST /api/v1/agent/emergency-stop semantics.
+  Future<bool> triggerEmergencyStop() async {
+    try {
+      final response = await apiClient.post("/agent/emergency-stop", {});
+      activeCommandStatus = "idle";
+      activeCommandMessage =
+          response["message"] ?? "Emergency stop processed. System reset to IDLE.";
+      notifyListeners();
+      return true;
+    } catch (_) {
+      // REST unreachable — fall back to the authenticated WS event channel
+      if (wsService.isConnected) {
+        wsService.sendEvent("EMERGENCY_STOP", {});
+        activeCommandStatus = "idle";
+        activeCommandMessage = "Emergency stop transmitted over secure channel.";
+        notifyListeners();
+        return true;
+      }
+      activeCommandStatus = "failed";
+      activeCommandMessage = "Emergency stop failed: gateway unreachable.";
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ==============================================================================
+>>>>>>> feature/astra-class-agent-core
   // WEBSOCKET CONFIRMATION CALLBACKS
   // ==============================================================================
 
@@ -118,7 +152,11 @@ class ControlController extends ChangeNotifier {
         "command": event.data["command"],
         "description": event.data["description"],
       };
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> feature/astra-class-agent-core
       countdownSeconds = event.data["expires_in"] ?? 30;
       activeCommandStatus = "waiting_confirmation";
       notifyListeners();
@@ -146,6 +184,17 @@ class ControlController extends ChangeNotifier {
       notifyListeners();
     }
 
+<<<<<<< HEAD
+=======
+    // 2.5 Broadcast emergency-stop acknowledgements reset the HUD instantly
+    else if (event.event == "EMERGENCY_STOP_TRIGGERED") {
+      activeCommandStatus = "idle";
+      activeCommandMessage =
+          "EMERGENCY STOP executed by ${event.data["cancelled_by"] ?? "host"}. Runtime reset to IDLE.";
+      notifyListeners();
+    }
+
+>>>>>>> feature/astra-class-agent-core
     // 3. Track Command Lifecycle Events on HUD
     else if (event.commandId == activeCommandId) {
       if (event.event == "COMMAND_STARTED") {
@@ -181,7 +230,11 @@ class ControlController extends ChangeNotifier {
     pendingConfirmation = null;
     activeCommandStatus = approve ? "approved" : "rejected";
     activeCommandMessage = approve ? "Authorization transmitted. Executing..." : "Command rejected by user.";
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     notifyListeners();
   }
 

@@ -3,7 +3,11 @@ import datetime
 import uuid
 import logging
 import ipaddress
+<<<<<<< HEAD
 from typing import List, Dict, Any
+=======
+from typing import List, Dict, Any, Optional
+>>>>>>> feature/astra-class-agent-core
 from fastapi import APIRouter, Request, HTTPException, Depends, status
 from pydantic import BaseModel, Field
 
@@ -31,6 +35,12 @@ class PairRequest(BaseModel):
     pairing_code: str = Field(..., min_length=6, max_length=6)
     device_name: str = Field(..., min_length=1, max_length=100)
     device_type: str = Field("android", min_length=1, max_length=30)
+<<<<<<< HEAD
+=======
+    device_id: Optional[str] = None
+    public_key: Optional[str] = None
+    capabilities: Optional[Dict[str, str]] = None
+>>>>>>> feature/astra-class-agent-core
 
 
 class DeviceModel(BaseModel):
@@ -41,6 +51,11 @@ class DeviceModel(BaseModel):
     paired_at: str
     last_seen: str
     revoked: bool
+<<<<<<< HEAD
+=======
+    public_key: Optional[str] = None
+    capabilities: Optional[str] = "{}"
+>>>>>>> feature/astra-class-agent-core
 
 
 class PairResponse(BaseModel):
@@ -202,7 +217,12 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
     device_repo.mark_pairing_session_used(session["session_id"])
 
     # Create device records
+<<<<<<< HEAD
     device_id = f"{payload.device_type}_{uuid.uuid4().hex[:12]}"
+=======
+    import json
+    device_id = payload.device_id or f"{payload.device_type}_{uuid.uuid4().hex[:12]}"
+>>>>>>> feature/astra-class-agent-core
     raw_token = token_service.generate_token()
     token_hash = token_service.hash_string(raw_token)
 
@@ -221,7 +241,13 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
         "paired_at": now_str,
         "updated_at": now_str,
         "last_seen": now_str,
+<<<<<<< HEAD
         "revoked": False
+=======
+        "revoked": False,
+        "public_key": payload.public_key,
+        "capabilities": json.dumps(payload.capabilities) if payload.capabilities else "{}"
+>>>>>>> feature/astra-class-agent-core
     }
 
     device_repo.create_device(device_data)
@@ -236,7 +262,13 @@ async def pair_device(request: Request, payload: PairRequest) -> PairResponse:
             permissions=standard_permissions,
             paired_at=now_str,
             last_seen=now_str,
+<<<<<<< HEAD
             revoked=False
+=======
+            revoked=False,
+            public_key=payload.public_key,
+            capabilities=json.dumps(payload.capabilities) if payload.capabilities else "{}"
+>>>>>>> feature/astra-class-agent-core
         ),
         access_token=raw_token
     )

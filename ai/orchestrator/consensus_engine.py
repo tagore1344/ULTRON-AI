@@ -2,12 +2,14 @@ class ConsensusEngine:
 
     def combine(self, responses):
 
-        final_answer = ""
+        if not responses:
+            return ""
 
-        for response in responses:
+        # A single answer passes through verbatim — no artificial separator.
+        if len(responses) == 1:
+            return responses[0]
 
-            final_answer += response
-
-            final_answer += "\n\n------------------------\n\n"
-
-        return final_answer
+        # Multiple answers are joined with clean blank lines only — no
+        # separator artifacts ("-----") and no provider names leak into
+        # the final user-facing text.
+        return "\n\n".join(str(r) for r in responses)

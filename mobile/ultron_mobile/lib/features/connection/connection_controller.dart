@@ -65,7 +65,11 @@ class ConnectionController extends ChangeNotifier {
     if (token != null && savedUrl != null && deviceId != null) {
       _isPaired = true;
       _pairedDeviceName = config.deviceName;
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> feature/astra-class-agent-core
       // Load saved URL configs
       try {
         final parsedUrl = Uri.parse(savedUrl);
@@ -168,7 +172,11 @@ class ConnectionController extends ChangeNotifier {
     _reconnectTimer = Timer(Duration(seconds: _reconnectDelaySeconds), () async {
       if (_isPaired && _state != ConnectionState.connected) {
         logger.info("Attempting automatic reconnection delay: %ds", _reconnectDelaySeconds);
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> feature/astra-class-agent-core
         // Exponential Backoff calculation
         _reconnectDelaySeconds = (_reconnectDelaySeconds * 2).clamp(1, 30);
         await connect();
@@ -184,7 +192,11 @@ class ConnectionController extends ChangeNotifier {
     await storage.clearAll();
     _isPaired = false;
     _pairedDeviceName = null;
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     _setState(ConnectionState.revoked, error: "Access revoked by Laptop host.");
   }
 

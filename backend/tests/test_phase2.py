@@ -28,7 +28,11 @@ def auth_headers():
     session_response = client.post("/api/v1/auth/pairing-session")
     sess_data = session_response.json()
     pairing_pin = sess_data["pairing_code"]
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 2. Pair device
     pair_resp = client.post("/api/v1/auth/pair", json={
         "pairing_code": pairing_pin,
@@ -47,7 +51,11 @@ def test_chat_valid_payload(auth_headers):
     """Verify that POST /api/v1/chat returns a valid 200 response matching the schema."""
     response = client.post("/api/v1/chat", headers=auth_headers, json={"message": "Say hello in one short sentence"})
     assert response.status_code == 200
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     data = response.json()
     assert data["success"] is True
     assert "response" in data
@@ -80,15 +88,24 @@ def test_system_telemetry_endpoint(auth_headers):
     """Verify that GET /api/v1/system/status returns active hardware metrics."""
     response = client.get("/api/v1/system/status", headers=auth_headers)
     assert response.status_code == 200
+<<<<<<< HEAD
     
     data = response.json()
     assert "cpu" in data
     assert "usage_percent" in data["cpu"]
     
+=======
+
+    data = response.json()
+    assert "cpu" in data
+    assert "usage_percent" in data["cpu"]
+
+>>>>>>> feature/astra-class-agent-core
     assert "memory" in data
     assert "usage_percent" in data["memory"]
     assert "used_mb" in data["memory"]
     assert "total_mb" in data["memory"]
+<<<<<<< HEAD
     
     assert "disk" in data
     assert "usage_percent" in data["disk"]
@@ -101,6 +118,20 @@ def test_system_telemetry_endpoint(auth_headers):
     assert "available" in data["gpu"]
     assert "name" in data["gpu"]
     
+=======
+
+    assert "disk" in data
+    assert "usage_percent" in data["disk"]
+
+    assert "battery" in data
+    assert "available" in data["battery"]
+    assert "percent" in data["battery"]
+
+    assert "gpu" in data
+    assert "available" in data["gpu"]
+    assert "name" in data["gpu"]
+
+>>>>>>> feature/astra-class-agent-core
     assert "os" in data
     assert "name" in data["os"]
     assert "version" in data["os"]
@@ -114,7 +145,11 @@ def test_command_valid_safe_execution(auth_headers):
     """Verify that an allowlisted SAFE command successfully runs and generates metadata."""
     response = client.post("/api/v1/commands", headers=auth_headers, json={"command": "get_time", "parameters": {}})
     assert response.status_code == 200
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     data = response.json()
     assert data["success"] is True
     assert "command_id" in data
@@ -127,7 +162,11 @@ def test_command_unknown_rejected(auth_headers):
     """Verify that requests for unlisted commands are rejected with 400 Bad Request."""
     response = client.post("/api/v1/commands", headers=auth_headers, json={"command": "format_disk_now", "parameters": {}})
     assert response.status_code == 400
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     data = response.json()
     assert data["success"] is False
     assert data["status"] == "rejected"
@@ -138,7 +177,11 @@ def test_command_high_risk_blocked_in_phase2(auth_headers):
     """Verify that HIGH_RISK commands are securely intercepted and blocked with 403 Forbidden."""
     response = client.post("/api/v1/commands", headers=auth_headers, json={"command": "shutdown", "parameters": {}})
     assert response.status_code == 403
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     data = response.json()
     assert data["success"] is False
     assert data["status"] == "rejected"
@@ -154,7 +197,11 @@ def test_command_arbitrary_shell_interpreters_blocked(auth_headers):
         {"command": "sh", "parameters": {}},
         {"command": "cmd.exe", "parameters": {}},
     ]
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     for payload in payloads:
         response = client.post("/api/v1/commands", headers=auth_headers, json=payload)
         assert response.status_code == 422

@@ -22,18 +22,32 @@ def clean_lockouts():
 
 def test_pairing_and_auth_workflow():
     """Verify standard pairing session PIN generation, pairing, token distribution, and endpoint authorization."""
+<<<<<<< HEAD
     
     # 1. Create session PIN (Loopback protection allows testclient)
     session_response = client.post("/api/v1/auth/pairing-session")
     assert session_response.status_code == 201
     
+=======
+
+    # 1. Create session PIN (Loopback protection allows testclient)
+    session_response = client.post("/api/v1/auth/pairing-session")
+    assert session_response.status_code == 201
+
+>>>>>>> feature/astra-class-agent-core
     sess_data = session_response.json()
     assert sess_data["success"] is True
     assert "pairing_code" in sess_data
     assert "session_id" in sess_data
+<<<<<<< HEAD
     
     pairing_pin = sess_data["pairing_code"]
     
+=======
+
+    pairing_pin = sess_data["pairing_code"]
+
+>>>>>>> feature/astra-class-agent-core
     # 2. Try pairing with an invalid code
     bad_pair_resp = client.post("/api/v1/auth/pair", json={
         "pairing_code": "000000",
@@ -41,7 +55,11 @@ def test_pairing_and_auth_workflow():
         "device_type": "android"
     })
     assert bad_pair_resp.status_code == 401
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 3. Pair successfully with valid PIN
     good_pair_resp = client.post("/api/v1/auth/pair", json={
         "pairing_code": pairing_pin,
@@ -49,15 +67,26 @@ def test_pairing_and_auth_workflow():
         "device_type": "android"
     })
     assert good_pair_resp.status_code == 200
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     pair_data = good_pair_resp.json()
     assert pair_data["success"] is True
     assert "access_token" in pair_data
     assert pair_data["device"]["device_name"] == "Test Android Phone"
+<<<<<<< HEAD
     
     token = pair_data["access_token"]
     device_id = pair_data["device"]["device_id"]
     
+=======
+
+    token = pair_data["access_token"]
+    device_id = pair_data["device"]["device_id"]
+
+>>>>>>> feature/astra-class-agent-core
     # 4. Try pairing again with the same (reused/invalidated) code
     reused_pair_resp = client.post("/api/v1/auth/pair", json={
         "pairing_code": pairing_pin,
@@ -68,12 +97,20 @@ def test_pairing_and_auth_workflow():
 
     # 5. Connect to protected endpoints using the raw token
     auth_headers = {"Authorization": f"Bearer {token}"}
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # Check Telemetry Endpoint (Succeeds)
     telemetry_resp = client.get("/api/v1/system/status", headers=auth_headers)
     assert telemetry_resp.status_code == 200
     assert "cpu" in telemetry_resp.json()
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # Check Chat Endpoint (Succeeds)
     chat_resp = client.post("/api/v1/chat", headers=auth_headers, json={"message": "Say hello in 3 words"})
     assert chat_resp.status_code == 200
@@ -93,12 +130,20 @@ def test_pairing_and_auth_workflow():
     devices_resp = client.get("/api/v1/devices", headers=auth_headers)
     assert devices_resp.status_code == 200
     assert len(devices_resp.json()) >= 1
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 6. Revoke access of the device
     revoke_resp = client.delete(f"/api/v1/devices/{device_id}", headers=auth_headers)
     assert revoke_resp.status_code == 200
     assert revoke_resp.json()["success"] is True
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # 7. Try connecting with revoked token (Fails with 401)
     blocked_telemetry_resp = client.get("/api/v1/system/status", headers=auth_headers)
     assert blocked_telemetry_resp.status_code == 401
@@ -112,13 +157,21 @@ def test_blocked_unauthenticated_requests():
         ("POST", "/api/v1/commands"),
         ("GET", "/api/v1/devices")
     ]
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     for method, path in endpoints:
         if method == "GET":
             resp = client.get(path)
         else:
             resp = client.post(path, json={"message": "test", "command": "get_time"})
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> feature/astra-class-agent-core
         assert resp.status_code == 401
 
 
@@ -126,7 +179,11 @@ def test_pairing_lockout_rate_limiting():
     """Verify that brute force tracking limits attempts and applies a lockout."""
     # Issue multiple bad pairing attempts to trigger the rate limiter
     client_ip = "testclient"
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # We exceed 5 failures to trigger lockouts
     for _ in range(5):
         resp = client.post("/api/v1/auth/pair", json={
@@ -135,7 +192,11 @@ def test_pairing_lockout_rate_limiting():
             "device_type": "android"
         })
         assert resp.status_code == 401
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # Sixth attempt must be blocked by rate limiting lockouts
     locked_resp = client.post("/api/v1/auth/pair", json={
         "pairing_code": "123456",
@@ -154,7 +215,11 @@ def test_pair_blocks_tailscale_origins():
     """Verify that pairing attempts originating from Tailscale IP subnets are strictly blocked with 403."""
     # Unit-tested Tailscale network classification:
     from backend.api.routes.auth import is_local_lan
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # Standard Tailscale IPv4 ranges (100.64.0.0/10)
     assert is_local_lan("100.64.12.35") is False
     assert is_local_lan("100.127.255.254") is False
@@ -162,7 +227,11 @@ def test_pair_blocks_tailscale_origins():
     # Standard Tailscale IPv6 Unique Local Address ranges (fd7a:115c:a1e0::/48)
     assert is_local_lan("fd7a:115c:a1e0::1234") is False
     assert is_local_lan("fd7a:115c:a1e0:1a2b::5678") is False
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     # Standard Local LAN/Loopback RFC 1918 private address ranges
     assert is_local_lan("127.0.0.1") is True
     assert is_local_lan("::1") is True
@@ -197,6 +266,10 @@ def test_one_phone_cannot_revoke_another():
     # 3. Attempt to let Phone A delete/revoke Phone B (Fails with 403 Forbidden)
     headers_a = {"Authorization": f"Bearer {token_a}"}
     unauthorized_revoke_resp = client.delete(f"/api/v1/devices/{id_b}", headers=headers_a)
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> feature/astra-class-agent-core
     assert unauthorized_revoke_resp.status_code == 403
     assert "only restrict" in unauthorized_revoke_resp.json()["detail"].lower() or "self-revocation" in unauthorized_revoke_resp.json()["detail"].lower()
