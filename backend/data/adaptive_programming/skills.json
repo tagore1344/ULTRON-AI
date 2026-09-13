@@ -1,0 +1,14 @@
+{
+  "debugging": {
+    "skill": "debugging",
+    "tasks_attempted": 8,
+    "tasks_solved": 2,
+    "success_rate": 0.25,
+    "tests_passed": 2,
+    "tests_failed": 12,
+    "regressions_introduced": 0,
+    "average_iterations": 2.2,
+    "total_duration_sec": 0.0,
+    "last_updated": "2026-09-01T16:26:57.875140+00:00"
+  }
+}
