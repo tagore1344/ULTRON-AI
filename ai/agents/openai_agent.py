@@ -24,6 +24,21 @@ if OpenAI is not None and os.getenv("OPENAI_API_KEY"):
         client = None
 
 
+def is_openai_available() -> bool:
+    """Reports whether the OpenAI provider can currently serve requests."""
+    global client
+    if client is not None:
+        return True
+    # Late reconfiguration pass: a key may have become available after import
+    # (e.g. .env loaded later, or injected dynamically during runtime).
+    if OpenAI is not None and os.getenv("OPENAI_API_KEY"):
+        try:
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        except Exception:
+            client = None
+    return client is not None
+
+
 def ask_openai(prompt: str) -> str:
     """Ask the configured OpenAI model using the modern Responses API."""
     if client is None:

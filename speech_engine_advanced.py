@@ -23,6 +23,8 @@ try:
 except Exception:
     WhisperModel = None
 
+from microphone_broker import mic_broker, MicState
+
 
 class AdvancedSpeechEngine:
 
@@ -49,13 +51,7 @@ class AdvancedSpeechEngine:
             self._find_microphone()
 
         self.model = None
-        if WhisperModel is not None:
-            try:
-                self.model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
-            except Exception:
-                self.model = None
-
-        print("[SPEECH] ✅ Faster-Whisper Voice Engine Active!" if self.model is not None else "[SPEECH] Fallback voice engine active (local speech features disabled).")
+        print("[SPEECH] ✅ Faster-Whisper Voice Engine Active (Lazy Loading enabled)!" if WhisperModel is not None else "[SPEECH] Fallback voice engine active (local speech features disabled).")
 
     def _find_microphone(self):
         for i in range(self.audio.get_device_count()):
@@ -90,7 +86,28 @@ class AdvancedSpeechEngine:
         Listens to microphone data and decodes via Faster-Whisper
         Ensures a clean response on the first command.
         """
-        if self.audio is None or self.model is None:
+        if self.audio is None:
+            return ""
+
+        # Acquire exclusive mic resource access
+        acquired = mic_broker.acquire("AdvancedSpeechEngine", MicState.COMMAND_LISTENING)
+        if not acquired:
+            print("[AUDIO ERROR] Failed to acquire microphone resource lock.")
+            return ""
+
+        print("[VOICE] Command listening started")
+
+        if self.model is None and WhisperModel is not None:
+            try:
+                print("[SPEECH] Lazily loading Whisper model 'tiny.en'...")
+                self.model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
+                print("[VOICE] Whisper model ready")
+            except Exception as e:
+                print(f"[SPEECH ERROR] Failed to lazily load Whisper model: {e}")
+                self.model = None
+
+        if self.model is None:
+            mic_broker.release("AdvancedSpeechEngine")
             return ""
 
         try:
@@ -104,14 +121,18 @@ class AdvancedSpeechEngine:
             )
         except Exception as e:
             print(f"[AUDIO ERROR] Could not open capture hardware: {e}")
+            mic_broker.release("AdvancedSpeechEngine")
             return ""
 
         print("[ULTRON] Awaiting your direct command...")
         frames = []
         start_time = time.time()
-        silence_threshold = 400
+
+        # Audio silence parameters optimized to catch quiet words and prevent truncation
+        silence_threshold = 200
         silent_chunks = 0
         has_spoken = False
+        max_silent_chunks = 35   # breathing room
 
         while time.time() - start_time < timeout:
             try:
@@ -128,13 +149,21 @@ class AdvancedSpeechEngine:
                     if has_spoken:
                         silent_chunks += 1
 
-                if has_spoken and silent_chunks > 25:
+                if has_spoken and silent_chunks > max_silent_chunks:
                     break
             except Exception:
                 break
 
-        stream.stop_stream()
-        stream.close()
+        try:
+            stream.stop_stream()
+            stream.close()
+        except:
+            pass
+
+        # Release resource instantly
+        print("[VOICE] Command listening stopped")
+        print("[VOICE] Microphone released")
+        mic_broker.release("AdvancedSpeechEngine")
 
         if not frames:
             return ""
@@ -145,4 +174,5 @@ class AdvancedSpeechEngine:
         segments, _ = self.model.transcribe(audio_np, beam_size=1)
         text = " ".join([seg.text for seg in segments]).strip()
 
+        print(f"[VOICE] Transcription: {text}")
         return text

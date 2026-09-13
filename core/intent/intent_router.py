@@ -1,4 +1,5 @@
 # core/intent/intent_router.py — Rule-based intent detection
+import re
 from core.constants import INTENT_CHAT
 
 
@@ -42,20 +43,58 @@ class IntentRouter:
         return text.strip()
 
     def detect(self, text):
-        text = self.clean_text(text)
+        cleaned_text = self.clean_text(text)
 
+        # 1. Match compound pattern: "open <app> and send a message to <recipient> as <message>"
+        compound_pattern = re.compile(
+            r"^(?:open|launch|start|run)\s+([a-zA-Z0-9 _.-]+?)\s+and\s+send\s+a\s+message\s+to\s+([a-zA-Z0-9 _.-]+?)\s+as\s+(.+)$",
+            re.IGNORECASE
+        )
+        match = compound_pattern.match(cleaned_text)
+        if match:
+            app_target = match.group(1).lower().strip()
+            recipient = match.group(2).strip()
+            message = match.group(3).strip()
+
+            return {
+                "intent": "composite",
+                "actions": [
+                    {"intent": "app.open", "target": app_target, "raw_text": f"open {app_target}"},
+                    {"intent": "app.send_message", "recipient": recipient, "message": message, "app": app_target, "raw_text": f"send a message to {recipient} as {message}"}
+                ],
+                "raw_text": cleaned_text
+            }
+
+        # 2. Match direct pattern: "send a message to <recipient> as <message>"
+        send_direct_pattern = re.compile(
+            r"^send\s+a\s+message\s+to\s+([a-zA-Z0-9 _.-]+?)\s+as\s+(.+)$",
+            re.IGNORECASE
+        )
+        match_direct = send_direct_pattern.match(cleaned_text)
+        if match_direct:
+            recipient = match_direct.group(1).strip()
+            message = match_direct.group(2).strip()
+            return {
+                "intent": "app.send_message",
+                "recipient": recipient,
+                "message": message,
+                "app": "whatsapp",
+                "raw_text": cleaned_text
+            }
+
+        # 3. Standard rule-based keyword triggers
         for intent, keywords in self.intent_map.items():
             for keyword in keywords:
-                if keyword in text:
-                    target = text.replace(keyword, "").strip()
+                if keyword in cleaned_text:
+                    target = cleaned_text.replace(keyword, "").strip()
                     return {
                         "intent": intent,
                         "target": target,
-                        "raw_text": text,
+                        "raw_text": cleaned_text,
                     }
 
         return {
             "intent": INTENT_CHAT,
-            "target": text,
-            "raw_text": text,
+            "target": cleaned_text,
+            "raw_text": cleaned_text,
         }
