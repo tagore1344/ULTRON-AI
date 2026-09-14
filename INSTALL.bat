@@ -1,9 +1,9 @@
 @echo off
-title ULTRON AI - INSTALLER
+title TAG AI - INSTALLER
 color 0B
 echo.
 echo  ========================================
-echo   ULTRON AI - WINDOWS INSTALLER
+echo   TAG AI - WINDOWS INSTALLER
 echo  ========================================
 echo.
 
@@ -34,23 +34,23 @@ if not exist ".env" (
     echo  [3/4] .env already exists.
 )
 
-echo  [4/4] Adding ULTRON to Windows Startup...
+echo  [4/4] Adding TAG to Windows Startup...
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "ULTRON-AI" /t REG_SZ /d "cmd /c start /B /MIN pythonw \"%ULTRON_PATH%run_ultron.py\"" /f >nul
-echo  [4/4] ULTRON will now start automatically on Windows boot!
+echo  [4/4] TAG will now start automatically on Windows boot!
 
 echo.
 echo  ========================================
 echo   INSTALLATION COMPLETE!
 echo  ========================================
 echo.
-echo  - Double-click ULTRON.bat to start manually anytime
-echo  - Or restart your PC - ULTRON starts automatically!
+echo  - Double-click ULTRON.bat to start TAG manually anytime
+echo  - Or restart your PC - TAG starts automatically!
 echo  - Say your wake word to activate
-echo  - HUD appears in the bottom-right corner of your screen
+edecho  - HUD appears in the top area of your screen
 echo.
-echo  Press any key to launch ULTRON now...
+echo  Press any key to launch TAG now...
 pause >nul
 
 start "" /B pythonw run_ultron.py
-echo  ULTRON is running!
+echo  TAG is running!
 timeout /t 3 >nul
