@@ -46,7 +46,7 @@ echo.
 echo  - Double-click ULTRON.bat to start TAG manually anytime
 echo  - Or restart your PC - TAG starts automatically!
 echo  - Say your wake word to activate
-edecho  - HUD appears in the top area of your screen
+echo  - HUD appears in the top area of your screen
 echo.
 echo  Press any key to launch TAG now...
 pause >nul
