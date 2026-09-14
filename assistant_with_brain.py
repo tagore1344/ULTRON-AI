@@ -1,5 +1,5 @@
 # assistant_with_brain.py
-# FIXED THREADING VERSION FOR ULTRON MATRIX
+# FIXED THREADING VERSION FOR TAG AI
 
 from transparent_overlay import UltronTopOverlay
 from PyQt6.QtWidgets import QApplication
@@ -26,7 +26,7 @@ from voice_id import VoiceID
 class JarvisWithBrain:
 
     def __init__(self):
-        print("\n[BOOT] Initializing Ultron Operating Matrix...\n")
+        print("\n[BOOT] Initializing TAG Operating Matrix...\n")
         self.memory = MemoryEngine()
         self.overlay = None
         self.speech = AdvancedSpeechEngine()
@@ -43,9 +43,9 @@ class JarvisWithBrain:
             "Systems operational. I am listening.",
             "Go ahead, sir.",
             "What can I do for you?",
-            "Ultron matrix online. Ready."
+            "TAG is online. Ready."
         ]
-        print("[BOOT] Ultron components compiled successfully!")
+        print("[BOOT] TAG components compiled successfully!")
 
     def inject_overlay(self, overlay_instance):
         self.overlay = overlay_instance
@@ -64,7 +64,7 @@ class JarvisWithBrain:
 
     def start(self):
         print("\n" + "=" * 60)
-        print("          🧠 ULTRON AI AGENT (VOICE LOCKED)")
+        print("          🧠 TAG AI AGENT (VOICE LOCKED)")
         print("=" * 60)
         threading.Thread(target=self._run_speech_greeting, daemon=True).start()
 
@@ -79,13 +79,13 @@ class JarvisWithBrain:
             self.wake_detector.start()
 
         self.is_running = True
-        print("\n[ULTRON] Running and monitoring audio feed...\n")
+        print("\n[TAG] Running and monitoring audio feed...\n")
 
     def _run_speech_greeting(self):
-        self.speech.speak("Ultron online. Systems secured to your biometric voice print.")
+        self.speech.speak("TAG online. Systems secured to your biometric voice print.")
 
     def on_wake_word(self):
-        print("\n[ULTRON] Wake word phrase detected. Running voice authentication...")
+        print("\n[TAG] Wake word phrase detected. Running voice authentication...")
         self.safe_update_overlay("VERIFYING VOICE...", "thinking")
         is_verified = self.voice_verifier.verify_speaker()
 
@@ -170,7 +170,7 @@ class JarvisWithBrain:
                     contextual_prompt = f"\nUser name: {user_name}\nUser message:\n{cmd}\n"
                 response = self.brain.think(contextual_prompt)
                 self.memory.add_conversation(cmd, response)
-                print(f"\n[ULTRON] {response}")
+                print(f"\n[TAG] {response}")
                 self.safe_update_overlay("SPEAKING...", "idle")
                 self.speech.speak(response)
 
@@ -184,7 +184,7 @@ class JarvisWithBrain:
             self.safe_update_overlay("SYSTEM IDLE", "idle")
 
     def stop(self):
-        print("\n[SHUTDOWN] Powering down Ultron cores...\n")
+        print("\n[SHUTDOWN] Powering down TAG cores...\n")
         self.is_running = False
         if self.wake_detector:
             self.wake_detector.stop()
