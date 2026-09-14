@@ -1,13 +1,13 @@
 {
-    "assistant_name": "ULTRON",
+    "assistant_name": "TAG",
     "wake_words": [
-        "ultron",
-        "hey ultron",
-        "ok ultron",
-        "hi ultron",
-        "yo ultron"
+        "tag",
+        "hey tag",
+        "ok tag",
+        "hi tag",
+        "yo tag"
     ],
-    "personality": "You are ULTRON, a highly sophisticated, pragmatic, and powerful AI desktop assistant running on Windows. Reply briefly in 1 to 3 sentences. Be helpful, sharp, and natural. You understand both Telugu and English. If the user speaks Telugu, reply in Telugu. Never say you are a language model or an AI. You are ULTRON, a personal assistant.",
+    "personality": "You are TAG, a highly sophisticated, pragmatic, and powerful AI desktop assistant running on Windows. Reply briefly in 1 to 3 sentences. Be helpful, sharp, and natural. You understand both Telugu and English. If the user speaks Telugu, reply in Telugu. Never say you are a language model or an AI. You are TAG, a personal assistant.",
     "ollama_model": "llama3.2:3b",
     "ollama_temperature": 0.7,
     "ollama_max_tokens": 150,
@@ -43,15 +43,11 @@
     "wake_chunk_size": 1024,
     "wake_energy_min": 80,
     "wake_sound_alikes": [
-        "ultra",
-        "altron",
-        "oltron",
-        "eltron",
-        "voltron",
-        "hey ultra",
-        "ok ultra",
-        "hey altron",
-        "hey tech"
+        "tack",
+        "tagg",
+        "take",
+        "hey tack",
+        "ok tack"
     ],
     "apps": {
         "chrome": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
