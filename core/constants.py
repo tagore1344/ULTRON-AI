@@ -1,8 +1,8 @@
-# core/constants.py — Shared constants for the ULTRON AI application
+# core/constants.py — Shared constants for the TAG AI application
 
 # Assistant identity
-ASSISTANT_NAME = "ULTRON"
-WAKE_WORDS = ["ultron", "hey ultron", "ok ultron", "hi ultron", "yo ultron"]
+ASSISTANT_NAME = "TAG"
+WAKE_WORDS = ["tag", "hey tag", "ok tag", "hi tag", "yo tag"]
 
 # AI model names
 GEMINI_MODEL = "gemini-2.5-flash"
