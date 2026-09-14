@@ -19,10 +19,10 @@ class AdvancedWakeWordDetector:
         self.callback = callback
         self.is_running = False
         self.wake_words = [
-            "ultron",
-            "hey ultron",
-            "ok ultron",
-            "hi ultron"
+            "tag",
+            "hey tag",
+            "ok tag",
+            "hi tag"
         ]
 
         self.model = None
@@ -30,13 +30,10 @@ class AdvancedWakeWordDetector:
         self.input_device_index = None
         self._stream = None
 
-        print("[VOICE] Wake listener started")
+        print("[VOICE] TAG wake listener started")
         self._find_microphone()
         self._load_model()
 
-    # ─────────────────────────────────────
-    # FIND WORKING MICROPHONE
-    # ─────────────────────────────────────
     def _find_microphone(self):
         if self.audio is None:
             return
@@ -58,9 +55,6 @@ class AdvancedWakeWordDetector:
             except:
                 pass
 
-    # ─────────────────────────────────────
-    # LOAD WHISPER
-    # ─────────────────────────────────────
     def _load_model(self):
         print("[WAKE] Loading Whisper model...")
         self.model = WhisperModel(
@@ -68,11 +62,8 @@ class AdvancedWakeWordDetector:
             device="cpu",
             compute_type="int8"
         )
-        print("[WAKE] ✅ Wake detector ready")
+        print("[WAKE] ✅ TAG wake detector ready")
 
-    # ─────────────────────────────────────
-    # CHECK WAKE WORD
-    # ─────────────────────────────────────
     def _is_wake_word(self, text):
         text = text.lower().strip()
         for ww in self.wake_words:
@@ -80,9 +71,6 @@ class AdvancedWakeWordDetector:
                 return True
         return False
 
-    # ─────────────────────────────────────
-    # MAIN LOOP
-    # ─────────────────────────────────────
     def _listen_loop(self):
         if self.audio is None:
             if pyaudio is not None:
@@ -92,7 +80,6 @@ class AdvancedWakeWordDetector:
                 print("[WAKE ERROR] PyAudio is unavailable in this environment.")
                 return
 
-        # Enforce mic resource acquisition
         acquired = mic_broker.acquire("AdvancedWakeWordDetector", MicState.WAKE_LISTENING)
         if not acquired:
             print("[WAKE ERROR] Wake word loop failed to acquire microphone resource.")
@@ -115,7 +102,7 @@ class AdvancedWakeWordDetector:
         while self.is_running:
             try:
                 frames = []
-                for _ in range(int(16000 / 2048 * 1.5)): # 1.5 seconds segments
+                for _ in range(int(16000 / 2048 * 1.5)):
                     if not self.is_running:
                         break
                     try:
@@ -145,12 +132,10 @@ class AdvancedWakeWordDetector:
                 if text:
                     print(f"[WAKE HEARD] {text}")
                     if self._is_wake_word(text):
-                        print("[VOICE] Wake word detected")
+                        print("[VOICE] TAG wake word detected")
 
-                        # Self suspend to release PyAudio before firing callback
                         self.suspend()
 
-                        # Dispatch callback
                         threading.Thread(
                             target=self.callback,
                             daemon=True
@@ -164,7 +149,6 @@ class AdvancedWakeWordDetector:
         self._cleanup_stream()
 
     def _cleanup_stream(self):
-        """Safely close and clean active stream objects."""
         if self._stream is not None:
             try:
                 self._stream.stop_stream()
@@ -180,25 +164,16 @@ class AdvancedWakeWordDetector:
                 pass
             self.audio = None
 
-    # ==============================================================================
-    # SUSPEND & RESUME LIFECYCLE
-    # ==============================================================================
-
     def suspend(self):
-        """Statefully releases the microphone and suspends background monitoring."""
-        print("[VOICE] Wake listener suspended")
+        print("[VOICE] TAG wake listener suspended")
         self.is_running = False
         self._cleanup_stream()
         mic_broker.release("AdvancedWakeWordDetector")
 
     def resume(self):
-        """Re-acquires the microphone and resumes background listening."""
-        print("[VOICE] Wake listener resumed")
+        print("[VOICE] TAG wake listener resumed")
         self.start()
 
-    # ─────────────────────────────────────
-    # START
-    # ─────────────────────────────────────
     def start(self):
         self.is_running = True
         threading.Thread(
@@ -206,9 +181,6 @@ class AdvancedWakeWordDetector:
             daemon=True
         ).start()
 
-    # ─────────────────────────────────────
-    # STOP
-    # ─────────────────────────────────────
     def stop(self):
         self.is_running = False
         self._cleanup_stream()
