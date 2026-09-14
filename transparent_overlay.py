@@ -20,7 +20,7 @@ class UltronTopOverlay(QMainWindow):
         self.layout = QVBoxLayout(self.central_widget)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.status_label = QLabel("ULTRON: SYSTEM IDLE", self)
+        self.status_label = QLabel("TAG: SYSTEM IDLE", self)
         self.status_label.setFont(QFont("Consolas", 12, QFont.Weight.Bold))
         self._set_style("idle")
 
@@ -32,7 +32,7 @@ class UltronTopOverlay(QMainWindow):
 
         self.layout.addWidget(self.status_label)
         self.setCentralWidget(self.central_widget)
-        print("[OVERLAY] Transparent status layer anchored to screen top.")
+        print("[OVERLAY] TAG transparent status layer anchored to screen top.")
 
     def _set_style(self, state):
         styles = {
@@ -54,5 +54,5 @@ class UltronTopOverlay(QMainWindow):
 
     @pyqtSlot(str, str)
     def update_status(self, text, state):
-        self.status_label.setText(f"ULTRON: {text.upper()}")
+        self.status_label.setText(f"TAG: {text.upper()}")
         self._set_style(state)
