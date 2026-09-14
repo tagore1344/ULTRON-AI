@@ -1,15 +1,15 @@
 @echo off
-title ULTRON AI
+title TAG AI
 color 0B
 echo.
-echo  ██╗   ██╗██╗  ████████╗██████╗  ██████╗ ███╗   ██╗
-echo  ██║   ██║██║  ╚══██╔══╝██╔══██╗██╔═══██╗████╗  ██║
-echo  ██║   ██║██║     ██║   ██████╔╝██║   ██║██╔██╗ ██║
-echo  ██║   ██║██║     ██║   ██╔══██╗██║   ██║██║╚██╗██║
-echo  ╚██████╔╝███████╗██║   ██║  ██║╚██████╔╝██║ ╚████║
-echo   ╚═════╝ ╚══════╝╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+echo  ████████╗ █████╗  ██████╗
+echo  ╚══██╔══╝██╔══██╗██╔════╝
+echo     ██║   ███████║██║  ███╗
+echo     ██║   ██╔══██║██║   ██║
+echo     ██║   ██║  ██║╚██████╔╝
+echo     ╚═╝   ╚═╝  ╚═╝ ╚═════╝
 echo.
-echo  [ AI SYSTEMS INITIALIZING... ]
+echo  [ TAG AI SYSTEMS INITIALIZING... ]
 echo.
 
 cd /d "%~dp0"
@@ -36,7 +36,7 @@ if not exist ".installed" (
     echo installed > .installed
 )
 
-echo  [ LAUNCHING ULTRON AI... ]
+echo  [ LAUNCHING TAG AI... ]
 start "" /B pythonw run_ultron.py
-echo  [ ULTRON IS NOW RUNNING - HUD will appear on screen ]
+echo  [ TAG IS NOW RUNNING - HUD will appear on screen ]
 timeout /t 3 >nul
