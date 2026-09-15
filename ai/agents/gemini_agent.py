@@ -15,34 +15,6 @@ except Exception:
     _new_genai = None
     GENAI_NEW_OK = False
 
-<<<<<<< HEAD
-_model = None
-_initialized = False
-
-
-def _get_model():
-    """Lazily configure genai and initialize the model on first use to prevent import race conditions."""
-    global _model, _initialized
-    if _initialized:
-        return _model
-
-    _initialized = True
-
-    if genai is None:
-        return None
-
-    load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        return None
-
-    try:
-        genai.configure(api_key=api_key)
-        _model = genai.GenerativeModel("gemini-2.5-flash")
-        return _model
-    except Exception:
-        return None
-=======
 # ── Fallback: legacy End-of-Life SDK (google-generativeai) ──
 try:
     with warnings.catch_warnings():
@@ -135,7 +107,6 @@ def is_gemini_available() -> bool:
     if _initialized:
         return _model is not None
     return _get_model() is not None
->>>>>>> feature/astra-class-agent-core
 
 
 def ask_gemini(prompt: str) -> str:
@@ -143,17 +114,6 @@ def ask_gemini(prompt: str) -> str:
 
     if current_model is None:
         # Determine the root cause to return a clear, precise configuration error
-<<<<<<< HEAD
-        load_dotenv()
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            return "Gemini Error: GEMINI_API_KEY is not configured in your .env file."
-        if genai is None:
-            return "Gemini Error: google-generativeai package is not installed."
-        return "Gemini Error: Failed to configure Gemini API client."
-
-    try:
-=======
         _load_root_env()
         api_key = _resolve_api_key()
         if not api_key:
@@ -170,12 +130,7 @@ def ask_gemini(prompt: str) -> str:
             )
             return response.text
         # Legacy SDK backend
->>>>>>> feature/astra-class-agent-core
         response = current_model.generate_content(prompt)
         return response.text
     except Exception as e:
         return f"Gemini Error: {str(e)}"
-<<<<<<< HEAD
-=======
-
->>>>>>> feature/astra-class-agent-core
