@@ -89,8 +89,6 @@ class AdvancedSpeechEngine:
         if self.audio is None:
             return ""
 
-<<<<<<< HEAD:speech_engine_advanced.py
-=======
         # Acquire exclusive mic resource access
         acquired = mic_broker.acquire("AdvancedSpeechEngine", MicState.COMMAND_LISTENING)
         if not acquired:
@@ -99,24 +97,17 @@ class AdvancedSpeechEngine:
 
         print("[VOICE] Command listening started")
 
->>>>>>> feature/astra-class-agent-core:services/speech_engine_advanced.py
         if self.model is None and WhisperModel is not None:
             try:
                 print("[SPEECH] Lazily loading Whisper model 'tiny.en'...")
                 self.model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
-<<<<<<< HEAD:speech_engine_advanced.py
-=======
                 print("[VOICE] Whisper model ready")
->>>>>>> feature/astra-class-agent-core:services/speech_engine_advanced.py
             except Exception as e:
                 print(f"[SPEECH ERROR] Failed to lazily load Whisper model: {e}")
                 self.model = None
 
         if self.model is None:
-<<<<<<< HEAD:speech_engine_advanced.py
-=======
             mic_broker.release("AdvancedSpeechEngine")
->>>>>>> feature/astra-class-agent-core:services/speech_engine_advanced.py
             return ""
 
         try:
