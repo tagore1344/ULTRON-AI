@@ -12,9 +12,9 @@ class PairingScreen extends StatefulWidget {
 }
 
 class _PairingScreenState extends State<PairingScreen> {
-  final _hostController = TextEditingController(text: "192.168.1.10:8000");
+  final _hostController = TextEditingController(text: '192.168.1.10:8000');
   final _codeController = TextEditingController();
-  final _nameController = TextEditingController(text: "Tag's Android");
+  final _nameController = TextEditingController(text: "TAG's Phone");
 
   @override
   void dispose() {
@@ -24,23 +24,23 @@ class _PairingScreenState extends State<PairingScreen> {
     super.dispose();
   }
 
-  void _onPairPressed(BuildContext context) async {
+  Future<void> _onPairPressed(BuildContext context) async {
     final host = _hostController.text.trim();
     final code = _codeController.text.trim();
     final name = _nameController.text.trim();
 
     if (host.isEmpty || code.isEmpty || name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("All fields are strictly required.")),
+        const SnackBar(content: Text('Enter the host, pairing PIN, and device name.')),
       );
       return;
     }
 
     try {
-      final controller = Provider.of<ultron.ConnectionController>(context, listen: false);
+      final controller = context.read<ultron.ConnectionController>();
       await controller.pairDevice(host, code, name);
-    } catch (e) {
-      // Errors handled statefully by Controller error views
+    } catch (_) {
+      // Controller exposes the error state.
     }
   }
 
@@ -50,74 +50,58 @@ class _PairingScreenState extends State<PairingScreen> {
       backgroundColor: UltronTheme.obsidianBackground,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24),
           child: Consumer<ultron.ConnectionController>(
-            builder: (context, controller, child) {
+            builder: (context, controller, _) {
               final isPairing = controller.state == ultron.ConnectionState.pairing;
               final hasError = controller.state == ultron.ConnectionState.error;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 40),
-                  // Logo Title Header
-                  Center(
+                  const SizedBox(height: 44),
+                  const Center(
                     child: Text(
-                      "ULTRON-AI",
-                      style: Theme.of(context).textTheme.headlineMedium,
+                      'TAG',
+                      style: TextStyle(
+                        fontFamily: 'Consolas',
+                        fontSize: 34,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 5,
+                        color: UltronTheme.cyanAccent,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Center(
                     child: Text(
-                      "REMOTE HUD GATEWAY INTERFACE",
+                      'PAIR YOUR PERSONAL AI',
                       style: TextStyle(
                         fontFamily: 'Consolas',
                         fontSize: 10,
                         color: UltronTheme.cleanGrey,
-                        letterSpacing: 2.0,
+                        letterSpacing: 2.2,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 50),
-
-                  // Host Laptop IP Address Input
-                  const Text(
-                    "LAPTOP HOST LAN IP PORT",
-                    style: TextStyle(fontFamily: 'Consolas', fontSize: 11, color: UltronTheme.cleanGrey),
-                  ),
+                  const SizedBox(height: 48),
+                  const Text('TAG GATEWAY HOST', style: _FieldLabel()),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _hostController,
-                    keyboardType: TextInputType.text,
                     style: const TextStyle(fontFamily: 'Consolas'),
-                    decoration: const InputDecoration(
-                      hintText: "e.g., 192.168.1.10:8000",
-                    ),
+                    decoration: const InputDecoration(hintText: '192.168.1.10:8000'),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Custom Device Name Input
-                  const Text(
-                    "CLIENT DEVICE NAME",
-                    style: TextStyle(fontFamily: 'Consolas', fontSize: 11, color: UltronTheme.cleanGrey),
-                  ),
+                  const SizedBox(height: 18),
+                  const Text('PHONE NAME', style: _FieldLabel()),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _nameController,
-                    keyboardType: TextInputType.name,
                     style: const TextStyle(fontFamily: 'Inter'),
-                    decoration: const InputDecoration(
-                      hintText: "e.g., Tag's Phone",
-                    ),
+                    decoration: const InputDecoration(hintText: "TAG's Phone"),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Temporary Pairing PIN code input
-                  const Text(
-                    "6-DIGIT TEMPORARY PAIRING PIN",
-                    style: TextStyle(fontFamily: 'Consolas', fontSize: 11, color: UltronTheme.cleanGrey),
-                  ),
+                  const SizedBox(height: 18),
+                  const Text('6-DIGIT PAIRING PIN', style: _FieldLabel()),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _codeController,
@@ -125,44 +109,43 @@ class _PairingScreenState extends State<PairingScreen> {
                     maxLength: 6,
                     style: const TextStyle(
                       fontFamily: 'Consolas',
-                      fontSize: 18,
-                      letterSpacing: 8.0,
+                      fontSize: 20,
+                      letterSpacing: 8,
                       fontWeight: FontWeight.bold,
                     ),
-                    decoration: const InputDecoration(
-                      hintText: "XXXXXX",
-                      counterText: "",
-                    ),
+                    decoration: const InputDecoration(hintText: 'XXXXXX', counterText: ''),
                   ),
                   const SizedBox(height: 30),
-
-                  // Error messages display
                   if (hasError)
                     Container(
                       margin: const EdgeInsets.only(bottom: 20),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: UltronTheme.rubyRed.withOpacity(0.1),
-                        border: Border.all(color: UltronTheme.rubyRed),
+                        color: UltronTheme.rubyRed.withOpacity(0.08),
+                        border: Border.all(color: UltronTheme.rubyRed.withOpacity(0.55)),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         controller.errorMessage,
                         style: const TextStyle(color: UltronTheme.rubyRed, fontSize: 12),
-                        textAlign: Center,
+                        textAlign: TextAlign.center,
                       ),
                     ),
-
-                  // Pairing Submit Button
-                  isPairing
-                      ? const Center(
-                          child: CircularProgressIndicator(color: UltronTheme.cyanAccent),
-                        )
-                      : ElevatedButton(
-                          onPressed: () => _onPairPressed(context),
-                          child: const Text("PAIR AND CONNECT"),
-                        ),
-                  const SizedBox(height: 20),
+                  if (isPairing)
+                    const Center(
+                      child: CircularProgressIndicator(color: UltronTheme.cyanAccent),
+                    )
+                  else
+                    ElevatedButton(
+                      onPressed: () => _onPairPressed(context),
+                      child: const Text('PAIR AND CONNECT'),
+                    ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'The phone uses the paired TAG gateway for AI reasoning, tools, and memory.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: UltronTheme.cleanGrey, fontSize: 11, height: 1.45),
+                  ),
                 ],
               );
             },
@@ -171,4 +154,15 @@ class _PairingScreenState extends State<PairingScreen> {
       ),
     );
   }
+}
+
+class _FieldLabel extends TextStyle {
+  const _FieldLabel()
+      : super(
+          fontFamily: 'Consolas',
+          fontSize: 11,
+          color: UltronTheme.cleanGrey,
+          letterSpacing: 1.1,
+          fontWeight: FontWeight.bold,
+        );
 }
