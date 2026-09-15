@@ -7,10 +7,8 @@ import 'package:ultron_mobile/features/pairing/pairing_screen.dart';
 import 'package:ultron_mobile/features/home/home_screen.dart';
 import 'package:ultron_mobile/features/chat/chat_screen.dart';
 import 'package:ultron_mobile/features/control/control_screen.dart';
-<<<<<<< HEAD
-=======
 import 'package:ultron_mobile/features/proposals/proposals_screen.dart';
->>>>>>> feature/astra-class-agent-core
+import 'package:ultron_mobile/features/voice/voice_screen.dart';
 
 class UltronApp extends StatelessWidget {
   const UltronApp({super.key});
@@ -18,7 +16,7 @@ class UltronApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ULTRON HUD',
+      title: 'TAG AI',
       theme: UltronTheme.darkTheme,
       debugShowCheckedModeBanner: false,
       home: const MainGatekeeper(),
@@ -52,14 +50,12 @@ class NavigationScaffold extends StatefulWidget {
 class _NavigationScaffoldState extends State<NavigationScaffold> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const ChatScreen(),
-<<<<<<< HEAD
-=======
-    const ProposalsScreen(),
->>>>>>> feature/astra-class-agent-core
-    const ControlScreen(),
+  final List<Widget> _screens = const [
+    VoiceScreen(),
+    HomeScreen(),
+    ChatScreen(),
+    ProposalsScreen(),
+    ControlScreen(),
   ];
 
   @override
@@ -73,40 +69,45 @@ class _NavigationScaffoldState extends State<NavigationScaffold> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
+          onTap: (index) => setState(() => _currentIndex = index),
           selectedItemColor: UltronTheme.cyanAccent,
           unselectedItemColor: UltronTheme.cleanGrey,
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
-          selectedLabelStyle: const TextStyle(fontFamily: 'Consolas', fontSize: 10, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: const TextStyle(fontFamily: 'Consolas', fontSize: 10),
+          selectedLabelStyle: const TextStyle(
+            fontFamily: 'Consolas',
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: 'Consolas',
+            fontSize: 9,
+          ),
           items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.circle_outlined),
+              activeIcon: Icon(Icons.circle, color: UltronTheme.cyanAccent),
+              label: 'TAG',
+            ),
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home, color: UltronTheme.cyanAccent),
-              label: "HOME",
+              label: 'HOME',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.chat_bubble_outline),
               activeIcon: Icon(Icons.chat_bubble, color: UltronTheme.cyanAccent),
-              label: "CHAT",
+              label: 'CHAT',
             ),
             BottomNavigationBarItem(
-<<<<<<< HEAD
-=======
               icon: Icon(Icons.fact_check_outlined),
               activeIcon: Icon(Icons.fact_check, color: UltronTheme.cyanAccent),
-              label: "REVIEW",
+              label: 'REVIEW',
             ),
             BottomNavigationBarItem(
->>>>>>> feature/astra-class-agent-core
               icon: Icon(Icons.tune_outlined),
               activeIcon: Icon(Icons.tune, color: UltronTheme.cyanAccent),
-              label: "CONTROL",
+              label: 'CONTROL',
             ),
           ],
         ),
