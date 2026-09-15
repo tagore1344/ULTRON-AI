@@ -37,12 +37,17 @@ class _PairingScreenState extends State<PairingScreen> {
     }
 
     try {
-      final controller = context.read<ultron.ConnectionController>();
-      await controller.pairDevice(host, code, name);
-    } catch (_) {
-      // Controller exposes the error state.
-    }
+      await context.read<ultron.ConnectionController>().pairDevice(host, code, name);
+    } catch (_) {}
   }
+
+  static const _labelStyle = TextStyle(
+    fontFamily: 'Consolas',
+    fontSize: 11,
+    color: UltronTheme.cleanGrey,
+    letterSpacing: 1.1,
+    fontWeight: FontWeight.bold,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +90,7 @@ class _PairingScreenState extends State<PairingScreen> {
                     ),
                   ),
                   const SizedBox(height: 48),
-                  const Text('TAG GATEWAY HOST', style: _FieldLabel()),
+                  const Text('TAG GATEWAY HOST', style: _labelStyle),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _hostController,
@@ -93,7 +98,7 @@ class _PairingScreenState extends State<PairingScreen> {
                     decoration: const InputDecoration(hintText: '192.168.1.10:8000'),
                   ),
                   const SizedBox(height: 18),
-                  const Text('PHONE NAME', style: _FieldLabel()),
+                  const Text('PHONE NAME', style: _labelStyle),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _nameController,
@@ -101,7 +106,7 @@ class _PairingScreenState extends State<PairingScreen> {
                     decoration: const InputDecoration(hintText: "TAG's Phone"),
                   ),
                   const SizedBox(height: 18),
-                  const Text('6-DIGIT PAIRING PIN', style: _FieldLabel()),
+                  const Text('6-DIGIT PAIRING PIN', style: _labelStyle),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _codeController,
@@ -154,15 +159,4 @@ class _PairingScreenState extends State<PairingScreen> {
       ),
     );
   }
-}
-
-class _FieldLabel extends TextStyle {
-  const _FieldLabel()
-      : super(
-          fontFamily: 'Consolas',
-          fontSize: 11,
-          color: UltronTheme.cleanGrey,
-          letterSpacing: 1.1,
-          fontWeight: FontWeight.bold,
-        );
 }
