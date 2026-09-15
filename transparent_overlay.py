@@ -97,7 +97,7 @@ class StatusPill(QFrame):
 
     def set_color(self, color: str):
         self.setStyleSheet(
-            f"QFrame#StatusPill {{ background: rgba(13,19,28,220); border: 1px solid {color}; border-radius: 9px; }}"
+            f"QFrame#StatusPill {{ background: rgba(13,19,28,180); border: 1px solid {color}; border-radius: 9px; }}"
             f"QLabel {{ color: {color}; }}"
         )
 
@@ -137,15 +137,15 @@ class UltronTopOverlay(QMainWindow):
 
         self._build_ui()
         self._set_state("idle")
-        print("[OVERLAY] TAG desktop HUD initialized.")
+        print("[OVERLAY] TAG desktop HUD initialized with translucent glass surfaces.")
 
     def _build_ui(self):
         shell = QFrame()
         shell.setObjectName("Shell")
         shell.setStyleSheet(
-            "QFrame#Shell { background: #0A0D12; border: 1px solid #263245; border-radius: 22px; }"
-            "QFrame#Panel { background: #111722; border: 1px solid #263245; border-radius: 16px; }"
-            "QFrame#SubPanel { background: #151C28; border: 1px solid #263245; border-radius: 13px; }"
+            "QFrame#Shell { background: rgba(10,13,18,205); border: 1px solid rgba(74,92,118,170); border-radius: 22px; }"
+            "QFrame#Panel { background: rgba(17,23,34,182); border: 1px solid rgba(74,92,118,135); border-radius: 16px; }"
+            "QFrame#SubPanel { background: rgba(21,28,40,158); border: 1px solid rgba(74,92,118,120); border-radius: 13px; }"
             "QLabel { color: #F4F7FB; }"
             "QLabel[muted=\"true\"] { color: #8E9AAF; }"
         )
@@ -155,7 +155,6 @@ class UltronTopOverlay(QMainWindow):
         root.setContentsMargins(20, 20, 20, 20)
         root.setSpacing(14)
 
-        # Sidebar
         sidebar = QFrame()
         sidebar.setObjectName("Panel")
         sidebar.setFixedWidth(200)
@@ -177,7 +176,7 @@ class UltronTopOverlay(QMainWindow):
             item = QLabel(name)
             item.setFont(QFont("Inter", 9, QFont.Weight.DemiBold))
             item.setStyleSheet(
-                "color:#F4F7FB; background:#182331; border:1px solid #263245; border-radius:9px; padding:10px 12px;"
+                "color:#F4F7FB; background:rgba(24,35,49,150); border:1px solid rgba(53,230,255,130); border-radius:9px; padding:10px 12px;"
                 if name == "OVERVIEW"
                 else "color:#8E9AAF; padding:10px 12px;"
             )
@@ -204,7 +203,6 @@ class UltronTopOverlay(QMainWindow):
         side.addWidget(system)
         root.addWidget(sidebar)
 
-        # Main content
         content = QVBoxLayout()
         content.setSpacing(12)
         title_row = QHBoxLayout()
@@ -324,7 +322,6 @@ class UltronTopOverlay(QMainWindow):
         center_row.addWidget(runtime, 1)
         content.addLayout(center_row, 1)
 
-        # Command bar
         command = QFrame()
         command.setObjectName("Panel")
         command_layout = QHBoxLayout(command)
@@ -343,7 +340,7 @@ class UltronTopOverlay(QMainWindow):
         go = QLabel("GO")
         go.setAlignment(Qt.AlignmentFlag.AlignCenter)
         go.setFont(QFont("Inter", 9, QFont.Weight.Bold))
-        go.setStyleSheet("color:#0A0D12; background:#35E6FF; border-radius:9px; padding:10px 16px;")
+        go.setStyleSheet("color:#0A0D12; background:rgba(53,230,255,210); border-radius:9px; padding:10px 16px;")
         command_layout.addWidget(self.mic_pill)
         command_layout.addSpacing(8)
         command_layout.addWidget(go)
