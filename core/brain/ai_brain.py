@@ -34,10 +34,14 @@ class AIBrain:
         start = time.perf_counter()
         if self.orchestrator is not None:
             try:
-<<<<<<< HEAD
-                return self.orchestrator.ask(user_input)
+                result = self.orchestrator.ask(user_input)
+                logger.info(
+                    "REASONED req=%s provider=lite latency_ms=%.1f",
+                    _request_id(), (time.perf_counter() - start) * 1000,
+                )
+                return result
             except Exception as exc:
-                return f"Brain error: {exc}"
+                return f"Brain error: {str(exc)}"
         return "ULTRON Brain is not available in this environment."
 
     def act(self, goal: str) -> str:
@@ -48,14 +52,3 @@ class AIBrain:
             except Exception as exc:
                 return f"Brain action error: {exc}"
         return "ULTRON Brain is not available in this environment."
-=======
-                result = self.orchestrator.ask(user_input)
-                logger.info(
-                    "REASONED req=%s provider=lite latency_ms=%.1f",
-                    _request_id(), (time.perf_counter() - start) * 1000,
-                )
-                return result
-            except Exception as e:
-                return f"Brain error: {str(e)}"
-        return "ULTRON Brain is not available in this environment."
->>>>>>> origin/main
