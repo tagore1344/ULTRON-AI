@@ -13,56 +13,50 @@ class ApiClient {
   ApiClient({required this.config, required this.storage}) : _client = http.Client();
 
   Future<Map<String, String>> _headers() async {
-    final Map<String, String> headers = {
-      "Content-Type": "application/json",
-      "Accept": "application/json",
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
     };
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> feature/astra-class-agent-core
     final token = await storage.loadToken();
     if (token != null && token.isNotEmpty) {
-      headers["Authorization"] = "Bearer $token";
+      headers['Authorization'] = 'Bearer $token';
     }
     return headers;
   }
 
-  /// REST GET Request helper
   Future<dynamic> get(String path) async {
-    final url = Uri.parse("${config.restBaseUrl}$path");
+    final url = Uri.parse('${config.restBaseUrl}$path');
     final headers = await _headers();
-
     try {
-      final response = await _client.get(url, headers: headers).timeout(const Duration(seconds: 10));
+      final response = await _client
+          .get(url, headers: headers)
+          .timeout(const Duration(seconds: 10));
       return _processResponse(response);
     } catch (e) {
       throw _handleNetworkError(e);
     }
   }
 
-  /// REST POST Request helper
   Future<dynamic> post(String path, Map<String, dynamic> body) async {
-    final url = Uri.parse("${config.restBaseUrl}$path");
+    final url = Uri.parse('${config.restBaseUrl}$path');
     final headers = await _headers();
-    final jsonBody = json.encode(body);
-
     try {
-      final response = await _client.post(url, headers: headers, body: jsonBody).timeout(const Duration(seconds: 10));
+      final response = await _client
+          .post(url, headers: headers, body: json.encode(body))
+          .timeout(const Duration(seconds: 20));
       return _processResponse(response);
     } catch (e) {
       throw _handleNetworkError(e);
     }
   }
 
-  /// REST DELETE Request helper
   Future<dynamic> delete(String path) async {
-    final url = Uri.parse("${config.restBaseUrl}$path");
+    final url = Uri.parse('${config.restBaseUrl}$path');
     final headers = await _headers();
-
     try {
-      final response = await _client.delete(url, headers: headers).timeout(const Duration(seconds: 10));
+      final response = await _client
+          .delete(url, headers: headers)
+          .timeout(const Duration(seconds: 10));
       return _processResponse(response);
     } catch (e) {
       throw _handleNetworkError(e);
@@ -70,53 +64,47 @@ class ApiClient {
   }
 
   dynamic _processResponse(http.Response response) {
-    final statusCode = response.statusCode;
-    final bodyString = response.body;
-
     Map<String, dynamic> body = {};
-    if (bodyString.isNotEmpty) {
+    if (response.body.isNotEmpty) {
       try {
-        body = json.decode(bodyString);
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) body = decoded;
       } catch (_) {}
     }
 
-    if (statusCode >= 200 && statusCode < 300) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     }
 
-    // Process structured backend errors safely without disclosure of raw trace paths
-    final errorObj = body["error"] ?? {};
-    final errorCode = errorObj["code"] ?? "HTTP_ERROR";
-    final errorMessage = errorObj["message"] ?? "Server returned error code: $statusCode";
+    final errorObj = body['error'];
+    final errorMap = errorObj is Map ? Map<String, dynamic>.from(errorObj) : <String, dynamic>{};
+    final code = (errorMap['code'] ?? 'HTTP_ERROR').toString();
+    final message = (errorMap['message'] ?? 'Server returned error code: ${response.statusCode}').toString();
 
-    if (statusCode == 401) {
-      throw UnauthorizedException(errorCode, errorMessage);
-    } else if (statusCode == 403) {
-      throw ForbiddenException(errorCode, errorMessage);
-    } else {
-      throw ApiException(errorCode, errorMessage);
+    if (response.statusCode == 401) throw UnauthorizedException(code, message);
+    if (response.statusCode == 403) throw ForbiddenException(code, message);
+    throw ApiException(code, message);
+  }
+
+  Exception _handleNetworkError(dynamic error) {
+    if (error is SocketException) {
+      return NetworkOfflineException(
+        'NETWORK_OFFLINE',
+        'Cannot connect to TAG gateway. Verify the phone and TAG host are reachable.',
+      );
     }
+    return ApiException('GATEWAY_ANOMALY', 'Communication failed: $error');
   }
 
-  Exception _handleNetworkError(dynamic e) {
-    if (e is SocketException) {
-      return NetworkOfflineException("NETWORK_OFFLINE", "Cannot connect to ULTRON laptop. Verify same Wi-Fi connection.");
-    }
-    return ApiException("GATEWAY_ANOMALY", "Communication failed: $e");
-  }
-
-  void dispose() {
-    _client.close();
-  }
+  void dispose() => _client.close();
 }
 
-// Custom Exception Models
 class ApiException implements Exception {
   final String code;
   final String message;
   ApiException(this.code, this.message);
   @override
-  String toString() => "[$code] $message";
+  String toString() => '[$code] $message';
 }
 
 class UnauthorizedException extends ApiException {
