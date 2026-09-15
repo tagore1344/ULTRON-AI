@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 """ULTRON agent core: planning, state, routing and verification."""
 
 from .agent_loop import AgentLoop, AgentResult
@@ -17,6 +16,3 @@ __all__ = [
     "VerificationResult",
     "Verifier",
 ]
-=======
-# core/agent package - Minimum Viable Cognitive Core
->>>>>>> origin/main
