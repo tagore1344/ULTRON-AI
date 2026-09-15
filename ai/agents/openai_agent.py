@@ -29,8 +29,6 @@ def is_openai_available() -> bool:
     global client
     if client is not None:
         return True
-    # Late reconfiguration pass: a key may have become available after import
-    # (e.g. .env loaded later, or injected dynamically during runtime).
     if OpenAI is not None and os.getenv("OPENAI_API_KEY"):
         try:
             client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -45,26 +43,11 @@ def ask_openai(prompt: str) -> str:
         return "OpenAI Error: API dependency or OPENAI_API_KEY is unavailable."
 
     try:
-<<<<<<< HEAD
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are ULTRON AI, an advanced AI assistant."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-=======
         response = client.responses.create(
             model=os.getenv("ULTRON_MODEL", "gpt-6-astra"),
             reasoning={"effort": os.getenv("ULTRON_REASONING_EFFORT", "high")},
             instructions="You are ULTRON AI, an advanced, precise, tool-aware assistant.",
             input=prompt,
->>>>>>> feature/astra-class-agent-core
         )
         return response.output_text
     except Exception as exc:
