@@ -5,10 +5,9 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:ultron_mobile/features/chat/chat_controller.dart';
 
 /// Siri-style voice orchestration for TAG Mobile.
-/// Speech recognition is device-native; reasoning remains on the TAG gateway.
+/// Device speech handles recognition/playback; the paired TAG gateway handles reasoning.
 class VoiceController extends ChangeNotifier {
   final ChatController chat;
-
   final SpeechToText _speech = SpeechToText();
   final FlutterTts _tts = FlutterTts();
 
@@ -40,7 +39,7 @@ class VoiceController extends ChangeNotifier {
 
     final available = await _speech.initialize(
       onStatus: _onSpeechStatus,
-      onError: (error) {
+      onError: (_) {
         _status = 'MIC ERROR';
         _listening = false;
         notifyListeners();
@@ -58,15 +57,18 @@ class VoiceController extends ChangeNotifier {
     });
     _tts.setCompletionHandler(() {
       _speaking = false;
-      _status = 'READY';
+      _status = _handsFree ? 'WAITING FOR TAG' : 'READY';
       notifyListeners();
       if (_handsFree) {
-        Future<void>.delayed(const Duration(milliseconds: 350), () => startListening());
+        Future<void>.delayed(
+          const Duration(milliseconds: 350),
+          startListening,
+        );
       }
     });
     _tts.setCancelHandler(() {
       _speaking = false;
-      _status = 'READY';
+      _status = _handsFree ? 'WAITING FOR TAG' : 'READY';
       notifyListeners();
     });
     _tts.setErrorHandler((_) {
@@ -87,7 +89,7 @@ class VoiceController extends ChangeNotifier {
     _transcript = '';
     _soundLevel = 0;
     _listening = true;
-    _status = 'LISTENING';
+    _status = _handsFree ? 'WAITING FOR TAG' : 'LISTENING';
     notifyListeners();
 
     await _speech.listen(
@@ -130,8 +132,10 @@ class VoiceController extends ChangeNotifier {
     _handsFree = !_handsFree;
     notifyListeners();
     if (_handsFree) {
+      _status = 'WAITING FOR TAG';
+      notifyListeners();
       await startListening();
-    } else if (_listening) {
+    } else {
       await _speech.stop();
       _listening = false;
       _status = 'READY';
@@ -158,34 +162,80 @@ class VoiceController extends ChangeNotifier {
   }
 
   void _onSpeechResult(SpeechRecognitionResult result) {
-    _transcript = result.recognizedWords.trim();
+    final recognized = result.recognizedWords.trim();
+    _transcript = recognized;
     notifyListeners();
 
-    if (result.finalResult && !_submitting) {
-      _listening = false;
-      _status = 'THINKING';
+    if (!result.finalResult || _submitting) return;
+
+    _listening = false;
+    if (_handsFree && !_containsWakeWord(recognized)) {
+      _transcript = '';
+      _status = 'WAITING FOR TAG';
       notifyListeners();
-      _submitTranscript();
+      Future<void>.delayed(const Duration(milliseconds: 250), startListening);
+      return;
     }
+
+    _transcript = _stripWakeWord(recognized);
+    _status = 'THINKING';
+    notifyListeners();
+    _submitTranscript();
   }
 
   void _onSpeechStatus(String status) {
-    if (status == 'done' && _listening) {
-      _listening = false;
-      if (!_submitting && _transcript.trim().isNotEmpty) {
-        _status = 'THINKING';
+    if (status != 'done' || !_listening) return;
+
+    _listening = false;
+    final text = _transcript.trim();
+    if (text.isEmpty) {
+      if (_handsFree) {
+        _status = 'WAITING FOR TAG';
         notifyListeners();
-        _submitTranscript();
+        Future<void>.delayed(const Duration(milliseconds: 250), startListening);
       } else {
         _status = 'READY';
         notifyListeners();
       }
+      return;
     }
+
+    if (_handsFree && !_containsWakeWord(text)) {
+      _transcript = '';
+      _status = 'WAITING FOR TAG';
+      notifyListeners();
+      Future<void>.delayed(const Duration(milliseconds: 250), startListening);
+      return;
+    }
+
+    _transcript = _stripWakeWord(text);
+    _status = 'THINKING';
+    notifyListeners();
+    _submitTranscript();
+  }
+
+  bool _containsWakeWord(String text) {
+    final normalized = text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9 ]'), ' ');
+    return normalized.contains('hey tag') ||
+        normalized.contains('ok tag') ||
+        normalized.contains('hi tag') ||
+        RegExp(r'\btag\b').hasMatch(normalized);
+  }
+
+  String _stripWakeWord(String text) {
+    return text
+        .replaceFirst(RegExp(r'(?i)^\s*(hey|ok|hi)?\s*tag[, ]*'), '')
+        .trim();
   }
 
   Future<void> _submitTranscript() async {
     final text = _transcript.trim();
-    if (text.isEmpty || _submitting) return;
+    if (text.isEmpty || _submitting) {
+      if (_handsFree && text.isEmpty) {
+        Future<void>.delayed(const Duration(milliseconds: 250), startListening);
+      }
+      return;
+    }
 
     _submitting = true;
     _thinking = true;
@@ -204,13 +254,19 @@ class VoiceController extends ChangeNotifier {
         notifyListeners();
         await _tts.speak(_lastReply);
       } else {
-        _status = 'READY';
+        _status = _handsFree ? 'WAITING FOR TAG' : 'READY';
         notifyListeners();
+        if (_handsFree) {
+          Future<void>.delayed(const Duration(milliseconds: 350), startListening);
+        }
       }
     } catch (_) {
       _thinking = false;
       _status = 'GATEWAY OFFLINE';
       notifyListeners();
+      if (_handsFree) {
+        Future<void>.delayed(const Duration(seconds: 2), startListening);
+      }
     } finally {
       _submitting = false;
     }
