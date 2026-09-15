@@ -1,5 +1,6 @@
-# wake_word_advanced.py — FIXED MICROPHONE VERSION
+# wake_word_advanced.py — TAG wake detector with robust fuzzy matching
 
+import difflib
 import threading
 import time
 import numpy as np
@@ -22,8 +23,12 @@ class AdvancedWakeWordDetector:
             "tag",
             "hey tag",
             "ok tag",
-            "hi tag"
+            "hi tag",
         ]
+        # Common Whisper transcription variants for the short wake word "TAG".
+        self.wake_aliases = {
+            "tag", "taag", "tagg", "teg", "tig", "täg", "tang", "tak"
+        }
 
         self.model = None
         self.audio = pyaudio.PyAudio() if pyaudio is not None else None
@@ -42,17 +47,16 @@ class AdvancedWakeWordDetector:
             try:
                 info = self.audio.get_device_info_by_index(i)
                 if info["maxInputChannels"] > 0:
-                    if self.input_device_index is None:
-                        self.input_device_index = i
-                        break
-            except:
+                    self.input_device_index = i
+                    break
+            except Exception:
                 pass
 
         if self.input_device_index is not None:
             try:
                 device_name = self.audio.get_device_info_by_index(self.input_device_index)["name"]
                 print(f"[VOICE] Microphone device detected: {device_name}")
-            except:
+            except Exception:
                 pass
 
     def _load_model(self):
@@ -65,10 +69,26 @@ class AdvancedWakeWordDetector:
         print("[WAKE] ✅ TAG wake detector ready")
 
     def _is_wake_word(self, text):
-        text = text.lower().strip()
-        for ww in self.wake_words:
-            if ww in text:
+        text = " ".join(text.lower().strip().split())
+        if not text:
+            return False
+
+        # Exact phrase match first.
+        for wake_word in self.wake_words:
+            if wake_word in text:
                 return True
+
+        # Fuzzy single-token matching handles Whisper variants such as
+        # "teg", "tang" or "taag" without treating ordinary long words as TAG.
+        for token in text.split():
+            token = token.strip(".,!?;:'\"")
+            if token in self.wake_aliases:
+                return True
+            if 2 <= len(token) <= 5:
+                for alias in self.wake_aliases:
+                    if difflib.SequenceMatcher(None, token, alias).ratio() >= 0.82:
+                        return True
+
         return False
 
     def _listen_loop(self):
@@ -94,8 +114,8 @@ class AdvancedWakeWordDetector:
                 input_device_index=self.input_device_index,
                 frames_per_buffer=2048
             )
-        except Exception as e:
-            print(f"\n[WAKE ERROR] Could not open microphone:\n{e}")
+        except Exception as exc:
+            print(f"\n[WAKE ERROR] Could not open microphone:\n{exc}")
             mic_broker.release("AdvancedWakeWordDetector")
             return
 
@@ -108,42 +128,33 @@ class AdvancedWakeWordDetector:
                     try:
                         data = self._stream.read(2048, exception_on_overflow=False)
                         frames.append(data)
-                    except:
+                    except Exception:
                         break
 
                 if not self.is_running or not frames:
                     break
 
-                audio = np.frombuffer(
-                    b"".join(frames),
-                    dtype=np.int16
-                )
+                audio = np.frombuffer(b"".join(frames), dtype=np.int16)
                 audio = audio.astype(np.float32) / 32768.0
 
                 segments, _ = self.model.transcribe(
                     audio,
                     language="en",
-                    beam_size=1
+                    beam_size=3,
+                    initial_prompt="TAG, hey TAG, OK TAG, hi TAG."
                 )
-                text = " ".join(
-                    s.text for s in segments
-                ).strip().lower()
+                text = " ".join(s.text for s in segments).strip().lower()
 
                 if text:
                     print(f"[WAKE HEARD] {text}")
                     if self._is_wake_word(text):
                         print("[VOICE] TAG wake word detected")
-
                         self.suspend()
-
-                        threading.Thread(
-                            target=self.callback,
-                            daemon=True
-                        ).start()
+                        threading.Thread(target=self.callback, daemon=True).start()
                         break
 
-            except Exception as e:
-                print(f"[WAKE ERROR] {e}")
+            except Exception as exc:
+                print(f"[WAKE ERROR] {exc}")
                 time.sleep(1)
 
         self._cleanup_stream()
@@ -153,14 +164,14 @@ class AdvancedWakeWordDetector:
             try:
                 self._stream.stop_stream()
                 self._stream.close()
-            except:
+            except Exception:
                 pass
             self._stream = None
 
         if self.audio is not None:
             try:
                 self.audio.terminate()
-            except:
+            except Exception:
                 pass
             self.audio = None
 
@@ -176,10 +187,7 @@ class AdvancedWakeWordDetector:
 
     def start(self):
         self.is_running = True
-        threading.Thread(
-            target=self._listen_loop,
-            daemon=True
-        ).start()
+        threading.Thread(target=self._listen_loop, daemon=True).start()
 
     def stop(self):
         self.is_running = False
