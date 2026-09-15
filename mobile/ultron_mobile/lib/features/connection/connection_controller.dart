@@ -6,15 +6,7 @@ import 'package:ultron_mobile/core/networking/api_client.dart';
 import 'package:ultron_mobile/core/networking/websocket_service.dart';
 import 'package:ultron_mobile/core/storage/secure_storage_service.dart';
 
-enum ConnectionState {
-  disconnected,
-  connecting,
-  connected,
-  reconnecting,
-  error,
-  pairing,
-  revoked,
-}
+enum ConnectionState { disconnected, connecting, connected, reconnecting, error, pairing, revoked }
 
 class ConnectionController extends ChangeNotifier {
   final AppConfig config;
@@ -57,9 +49,7 @@ class ConnectionController extends ChangeNotifier {
     final token = await storage.loadToken();
     final savedUrl = await storage.loadHostUrl();
     final deviceId = await storage.loadDeviceId();
-
     if (token == null || savedUrl == null || deviceId == null) {
-      _isPaired = false;
       _setState(ConnectionState.disconnected);
       return;
     }
@@ -71,21 +61,14 @@ class ConnectionController extends ChangeNotifier {
       config.host = parsedUrl.host;
       config.port = parsedUrl.port == 0 ? 8000 : parsedUrl.port;
     } catch (_) {}
-
     _setState(ConnectionState.disconnected);
     await connect();
   }
 
-  Future<void> pairDevice(
-    String hostAddress,
-    String pairingCode,
-    String customDeviceName,
-  ) async {
+  Future<void> pairDevice(String hostAddress, String pairingCode, String customDeviceName) async {
     _setState(ConnectionState.pairing);
     try {
-      final parsedUri = Uri.parse(
-        hostAddress.startsWith('http') ? hostAddress : 'http://$hostAddress',
-      );
+      final parsedUri = Uri.parse(hostAddress.startsWith('http') ? hostAddress : 'http://$hostAddress');
       config.host = parsedUri.host;
       config.port = parsedUri.port == 0 ? 8000 : parsedUri.port;
       config.deviceName = customDeviceName;
@@ -95,16 +78,13 @@ class ConnectionController extends ChangeNotifier {
         'device_name': customDeviceName,
         'device_type': 'android',
       });
-
-      final success = response['success'] ?? false;
-      if (!success) {
+      if (!(response['success'] ?? false)) {
         throw ApiException('PAIRING_FAILED', 'Failed to pair device.');
       }
 
       await storage.saveToken(response['access_token']);
       await storage.saveDeviceId(response['device']['device_id']);
       await storage.saveHostUrl('http://${config.host}:${config.port}');
-
       _isPaired = true;
       _pairedDeviceName = customDeviceName;
       _setState(ConnectionState.disconnected);
@@ -118,10 +98,7 @@ class ConnectionController extends ChangeNotifier {
 
   Future<void> connect() async {
     if (_state == ConnectionState.connected) return;
-    if (_state != ConnectionState.reconnecting) {
-      _setState(ConnectionState.connecting);
-    }
-
+    if (_state != ConnectionState.reconnecting) _setState(ConnectionState.connecting);
     try {
       await wsService.connect();
     } catch (_) {
@@ -152,15 +129,12 @@ class ConnectionController extends ChangeNotifier {
 
   void _scheduleReconnection() {
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(
-      Duration(seconds: _reconnectDelaySeconds),
-      () async {
-        if (_isPaired && _state != ConnectionState.connected) {
-          _reconnectDelaySeconds = (_reconnectDelaySeconds * 2).clamp(1, 30);
-          await connect();
-        }
-      },
-    );
+    _reconnectTimer = Timer(Duration(seconds: _reconnectDelaySeconds), () async {
+      if (_isPaired && _state != ConnectionState.connected) {
+        _reconnectDelaySeconds = (_reconnectDelaySeconds * 2).clamp(1, 30).toInt();
+        await connect();
+      }
+    });
   }
 
   Future<void> _onRevocationTriggered() async {
@@ -175,11 +149,8 @@ class ConnectionController extends ChangeNotifier {
     _reconnectTimer?.cancel();
     try {
       final deviceId = await storage.loadDeviceId();
-      if (deviceId != null) {
-        await apiClient.delete('/devices/$deviceId');
-      }
+      if (deviceId != null) await apiClient.delete('/devices/$deviceId');
     } catch (_) {}
-
     wsService.disconnect();
     await storage.clearAll();
     _isPaired = false;
