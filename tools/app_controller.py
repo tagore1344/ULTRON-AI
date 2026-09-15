@@ -41,11 +41,11 @@ class AppController:
             "notepad":        "notepad.exe",
             "calculator":     "calc.exe",
             "calc":           "calc.exe",
-            "paint":          "mspaint.exe",
-            "wordpad":        "write.exe",
-            "explorer":       "explorer.exe",
+            "paint":           "mspaint.exe",
+            "wordpad":         "write.exe",
+            "explorer":        "explorer.exe",
             "file explorer":  "explorer.exe",
-            "cmd":            "cmd.exe",
+            "cmd":             "cmd.exe",
             "command prompt": "cmd.exe",
             "powershell":     "powershell.exe",
             "task manager":   "taskmgr.exe",
@@ -394,11 +394,7 @@ class AppController:
                         subprocess.Popen([cmd])
                     except OSError:
                         pass
-<<<<<<< HEAD:app_controller.py
-                self.speech.speak(f"Opening {key}")
-=======
                 self._speak(f"Opening {key}")
->>>>>>> feature/astra-class-agent-core:tools/app_controller.py
                 return True
 
         # ── 2. Windows Store apps ────────────────
