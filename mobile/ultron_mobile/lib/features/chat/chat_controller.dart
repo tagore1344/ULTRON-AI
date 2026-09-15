@@ -16,11 +16,10 @@ class ChatController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get conversationId => _conversationId;
 
-  /// Send a text message to AIBrain statefully
-  Future<void> sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+  /// Sends a message to TAG and returns the assistant reply for voice/UI clients.
+  Future<String?> sendMessage(String text) async {
+    if (text.trim().isEmpty) return null;
 
-    // 1. Add user message to local UI list
     _addMessage(ChatMessage(
       text: text.trim(),
       isUser: true,
@@ -31,7 +30,6 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 2. Dispatch to backend AI gateway REST route
       final response = await apiClient.post("/chat", {
         "message": text.trim(),
         "conversation_id": _conversationId,
@@ -42,20 +40,23 @@ class ChatController extends ChangeNotifier {
       final bool success = response["success"] ?? false;
       if (success) {
         _conversationId = response["conversation_id"];
-        final String aiReply = response["response"];
-
-        // 3. Add AI reply to local UI list
+        final String aiReply = (response["response"] ?? '').toString();
         _addMessage(ChatMessage(
           text: aiReply,
           isUser: false,
           timestamp: DateTime.now(),
         ));
-      } else {
-        _addErrorResponse("ULTRON Core was unable to complete reasoning.");
+        return aiReply;
       }
+
+      const fallback = "TAG Core was unable to complete reasoning.";
+      _addErrorResponse(fallback);
+      return fallback;
     } catch (e) {
       _isLoading = false;
-      _addErrorResponse("ULTRON is currently offline: ${e.toString()}");
+      const fallback = "TAG is currently offline.";
+      _addErrorResponse(fallback);
+      throw ApiException("VOICE_GATEWAY_OFFLINE", "$fallback $e");
     }
   }
 
@@ -73,7 +74,6 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clear messages list locally without affecting server persistent registries
   void clearMessages() {
     _messages.clear();
     _conversationId = null;
